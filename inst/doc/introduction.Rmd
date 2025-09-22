@@ -1,0 +1,261 @@
+---
+title: "OrgHeatmap入门教程"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{OrgHeatmap入门教程}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{OrgHeatmap} 
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+   fig.width = 7,
+  fig.height = 5,
+  dev = "png",  
+  dpi = 150
+)
+
+# 解决中文显示问题
+if (.Platform$OS.type == "windows") {
+  # Windows系统设置中文字体
+  windowsFonts(sans = windowsFont("SimHei"))
+} else if (Sys.info()["sysname"] == "Darwin") {
+  # macOS系统设置中文字体
+  ggplot2::theme_set(ggplot2::theme_minimal(base_family = "Heiti TC"))
+} else {
+  # Linux系统设置中文字体
+  ggplot2::theme_set(ggplot2::theme_minimal(base_family = "WenQuanYi Micro Hei"))
+}
+
+```
+
+```{r setup}
+library(OrgHeatmap)
+```
+
+## 1. 包简介
+
+`OrgHeatmap`是一个用于在人体器官图上可视化数值数据（如基因表达量、生理指标）的工具包。它支持自定义颜色方案、按器官系统过滤数据，以及添加条形图进行定量比较，帮助直观展示数据在人体解剖结构中的分布。
+
+
+## 2. 安装与数据准备
+
+### 2.1 安装包
+```r
+# 从本地安装（替换为你的包文件路径）
+install.packages("OrgHeatmap_0.1.0.tar.gz", repos = NULL, type = "source")
+
+# 若已上传到GitHub，可从仓库安装
+# devtools::install_github("你的用户名/OrgHeatmap")
+
+# 如果未安装devtools，请先执行：
+# install.packages("devtools")
+
+# 安装依赖包（若运行时提示缺失）
+install.packages(c("ggpolypath", "patchwork", "dplyr", "stringdist", "ggplot2"))
+```
+
+### 2.2 加载示例数据
+包内置了示例数据，方便快速上手：
+```r
+# 加载示例数据
+data(example_Data3, package = "OrgHeatmap")
+
+# 验证数据是否加载成功
+if (!exists("example_Data3")) {
+  stop("示例数据加载失败，请检查包是否正确安装。")
+}
+
+# 查看数据结构（第一列是器官名称，第二列是数值）
+head(example_Data3)
+```
+```
+##           organ value
+##10   lymph_nodes 0.029
+##9           lung 0.041
+##5         uterus 0.026
+##17 adrenal_gland 0.014
+##25        tongue 0.038
+##18       stomach 0.050
+```
+
+
+## 3. 基础可视化
+
+### 3.1 简单绘制器官图
+使用核心函数`OrgHeatmap()`，传入数据即可生成基础可视化结果：
+```r
+# 基础可视化（使用默认参数）
+result <- OrgHeatmap(data = example_Data3)
+# 显示图形
+print(result$plot)
+```
+
+### 3.2 理解输出结果
+函数返回一个列表，包含可视化结果和处理后的数据：
+```r
+# 查看返回结果的结构
+names(result)
+```
+```
+## [1] "plot"         "clean_data"   "system_used"  "mapped_organs"
+## [5] "missing_organs" "total_value"
+```
+
+关键元素说明：
+- `plot`：可视化图表（ggplot2对象，可直接打印）
+- `clean_data`：清洗后的数据集（器官名称标准化+数值处理）
+- `missing_organs`：没有坐标数据的器官（无法可视化的名称）
+- `total_value`：所有器官数值的总和
+
+
+## 4. 核心功能详解
+
+### 4.1 按器官系统过滤
+用`system`参数指定要显示的器官系统（如循环系统、呼吸系统）：
+```r
+# 只显示循环系统器官
+circulatory_plot <- OrgHeatmap(
+  data = example_Data3,
+  system = "circulatory",  # 指定循环系统
+  title = "循环系统数据可视化"  # 自定义标题
+)
+
+# 查看所有支持的器官系统
+unique(organ_systems$system)
+```
+
+
+### 4.2 自定义颜色方案
+通过以下参数调整颜色：
+- `fillcolor_organ`：器官的颜色方案（支持"plasma"、"viridis"等）
+- `fillcolor_outline`：人体轮廓的填充色
+- `direction`：颜色梯度方向（1=默认，-1=反转）
+
+```r
+# 自定义颜色示例
+custom_color_plot <- OrgHeatmap(
+  data = example_Data3,
+  fillcolor_organ = "viridis",    # 使用viridis配色
+  fillcolor_outline = "#E6F7FF",  # 浅蓝色轮廓
+  direction = -1,                 # 反转颜色梯度
+  title = "自定义颜色方案"
+)
+```
+
+
+### 4.3 添加定量条形图
+设置`organbar = TRUE`可在右侧添加条形图，方便数值对比：
+```r
+# 带条形图的可视化
+bar_plot <- OrgHeatmap(
+  data = example_Data3,
+  organbar = TRUE,               # 启用条形图
+  organbar_title = "数值大小",    # 条形图图例标题
+  organbar_digit = 1,            # 数值保留1位小数
+  title = "带条形图的器官数据展示"
+)
+```
+
+
+### 4.4 器官名称映射（处理非标准名称）
+如果数据中的器官名称不规范（如"Heart Tissue"），可通过`organ_name_mapping`映射到标准名称：
+```r
+# 定义名称映射规则
+name_mapping <- c(
+  "Heart Tissue" = "heart",    # "Heart Tissue"映射为"heart"
+  "Liver Cells" = "liver",     # "Liver Cells"映射为"liver"
+  "Brain Region" = "brain"     # "Brain Region"映射为"brain"
+)
+
+# 应用映射
+mapped_plot <- OrgHeatmap(
+  data = data.frame(
+    organ = c("Heart Tissue", "Liver Cells", "Brain Region"),
+    value = c(12, 18, 9)
+  ),
+  organ_name_mapping = name_mapping,
+  title = "器官名称映射示例"
+)
+```
+
+
+### 4.5 数据聚合（处理重复器官）
+当数据中存在重复器官（如多个"heart"条目），用`aggregate_method`指定聚合方式：
+```r
+# 对重复器官进行均值聚合
+aggregated_plot <- OrgHeatmap(
+  data = data.frame(
+    organ = c("heart", "heart", "liver"),  # 重复的"heart"
+    value = c(10, 20, 15)
+  ),
+  aggregate_method = "mean",  # 可选："mean"（均值）、"sum"（求和）、"count"（计数）
+  title = "重复器官数据聚合（均值）"
+)
+
+# 查看聚合结果
+aggregated_plot$clean_data
+```
+```
+##   organ value
+## 1 heart    15  # 两个heart的均值：(10+20)/2=15
+## 2 liver    15
+```
+
+
+
+### 4.6 显示所有器官轮廓
+设置`showall = TRUE`可显示所有器官的灰色轮廓，突出目标器官：
+```r
+OrgHeatmap(
+  data = example_Data3,
+  showall = TRUE,  # 显示所有器官轮廓
+  title = "显示所有器官轮廓的可视化"
+)
+```
+
+
+## 5. 常见问题解决
+
+### 5.1 警告：“The following organs have no coordinate data”
+- **原因**：部分器官名称在包中没有对应的坐标数据（无法可视化）。
+- **解决**：
+  1. 检查器官名称是否正确（参考`unique(organ_systems$organ)`中的标准名称）。
+  2. 用`valid_organs`参数过滤无效器官：
+     ```r
+     valid_plot <- OrgHeatmap(
+       data = example_Data3,
+       valid_organs = c("heart", "liver", "brain")  # 只保留这三个器官
+     )
+     ```
+
+
+### 5.2 条形图不显示
+- **原因**：数据中没有有效器官，或`organbar`参数未开启。
+- **解决**：确保`organbar = TRUE`且处理后的`clean_data`不为空。
+
+### 5.3 模糊匹配警告
+- **解决**：
+```r 
+install.packages("stringdist")  # 安装模糊匹配所需的包
+```
+   
+
+
+## 6. 总结
+
+`OrgHeatmap`简化了人体器官数据的可视化，核心功能对应的参数如下：
+
+| 功能                | 关键参数                     |
+|---------------------|------------------------------|
+| 器官系统过滤        | `system`                     |
+| 颜色自定义          | `fillcolor_organ`、`direction` |
+| 条形图配置          | `organbar`、`organbar_digit`  |
+| 名称标准化          | `organ_name_mapping`         |
+| 数据聚合            | `aggregate_method`           |
+
+查看完整参数说明：`?OrgHeatmap`
+

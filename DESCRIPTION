@@ -1,0 +1,23 @@
+Package: OrgHeatmap
+Title: Visualization Tool for Human Organ Data
+Version: 0.1.2
+Authors@R: 
+    person("Qirui", "Shen", ,"shenqr@i.smu.edu.cn", role = c("aut", "cre"))
+Description: A tool for visualizing numerical data (such as gene expression levels) on human organ maps. It supports custom color schemes, organ system filtering, and optional bar charts for quantitative comparison. The package integrates organ coordinate data to plot anatomical contours and map data values to specific organs, facilitating intuitive visualization of biological data distribution. The underlying method was described in the preprint by Zhou et al. (2022) <doi:10.1101/2022.09.07.506938>.
+Depends: R (>= 3.5), ggplot2 (>= 3.5.0)
+Imports: ggpolypath(>= 0.3.0), dplyr, magrittr, rlang, stringr,
+        patchwork, purrr, stringdist, data.table, RColorBrewer,
+        grDevices
+Suggests: knitr, svglite, rmarkdown, testthat (>= 3.0.0)
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+LazyData: true
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+NeedsCompilation: no
+Packaged: 2025-09-16 12:07:40 UTC; hp
+Author: Qirui Shen [aut, cre]
+Maintainer: Qirui Shen <shenqr@i.smu.edu.cn>
+Repository: CRAN
+Date/Publication: 2025-09-22 08:10:13 UTC

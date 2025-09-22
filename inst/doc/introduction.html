@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>OrgHeatmap入门教程</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">OrgHeatmap入门教程</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(OrgHeatmap)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="co">#&gt; Loading required package: ggplot2</span></span></code></pre></div>
+<div id="包简介" class="section level2">
+<h2>1. 包简介</h2>
+<p><code>OrgHeatmap</code>是一个用于在人体器官图上可视化数值数据（如基因表达量、生理指标）的工具包。它支持自定义颜色方案、按器官系统过滤数据，以及添加条形图进行定量比较，帮助直观展示数据在人体解剖结构中的分布。</p>
+</div>
+<div id="安装与数据准备" class="section level2">
+<h2>2. 安装与数据准备</h2>
+<div id="安装包" class="section level3">
+<h3>2.1 安装包</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># 从本地安装（替换为你的包文件路径）</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;OrgHeatmap_0.1.0.tar.gz&quot;</span>, <span class="at">repos =</span> <span class="cn">NULL</span>, <span class="at">type =</span> <span class="st">&quot;source&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co"># 若已上传到GitHub，可从仓库安装</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># devtools::install_github(&quot;你的用户名/OrgHeatmap&quot;)</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co"># 如果未安装devtools，请先执行：</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co"># install.packages(&quot;devtools&quot;)</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co"># 安装依赖包（若运行时提示缺失）</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="fu">c</span>(<span class="st">&quot;ggpolypath&quot;</span>, <span class="st">&quot;patchwork&quot;</span>, <span class="st">&quot;dplyr&quot;</span>, <span class="st">&quot;stringdist&quot;</span>, <span class="st">&quot;ggplot2&quot;</span>))</span></code></pre></div>
+</div>
+<div id="加载示例数据" class="section level3">
+<h3>2.2 加载示例数据</h3>
+<p>包内置了示例数据，方便快速上手：</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># 加载示例数据</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">data</span>(example_Data3, <span class="at">package =</span> <span class="st">&quot;OrgHeatmap&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># 验证数据是否加载成功</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">exists</span>(<span class="st">&quot;example_Data3&quot;</span>)) {</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;示例数据加载失败，请检查包是否正确安装。&quot;</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>}</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co"># 查看数据结构（第一列是器官名称，第二列是数值）</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="fu">head</span>(example_Data3)</span></code></pre></div>
+<pre><code>##           organ value
+##10   lymph_nodes 0.029
+##9           lung 0.041
+##5         uterus 0.026
+##17 adrenal_gland 0.014
+##25        tongue 0.038
+##18       stomach 0.050</code></pre>
+</div>
+</div>
+<div id="基础可视化" class="section level2">
+<h2>3. 基础可视化</h2>
+<div id="简单绘制器官图" class="section level3">
+<h3>3.1 简单绘制器官图</h3>
+<p>使用核心函数<code>OrgHeatmap()</code>，传入数据即可生成基础可视化结果：</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># 基础可视化（使用默认参数）</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(<span class="at">data =</span> example_Data3)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># 显示图形</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">print</span>(result<span class="sc">$</span>plot)</span></code></pre></div>
+</div>
+<div id="理解输出结果" class="section level3">
+<h3>3.2 理解输出结果</h3>
+<p>函数返回一个列表，包含可视化结果和处理后的数据：</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># 查看返回结果的结构</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">names</span>(result)</span></code></pre></div>
+<pre><code>## [1] &quot;plot&quot;         &quot;clean_data&quot;   &quot;system_used&quot;  &quot;mapped_organs&quot;
+## [5] &quot;missing_organs&quot; &quot;total_value&quot;</code></pre>
+<p>关键元素说明： -
+<code>plot</code>：可视化图表（ggplot2对象，可直接打印） -
+<code>clean_data</code>：清洗后的数据集（器官名称标准化+数值处理） -
+<code>missing_organs</code>：没有坐标数据的器官（无法可视化的名称） -
+<code>total_value</code>：所有器官数值的总和</p>
+</div>
+</div>
+<div id="核心功能详解" class="section level2">
+<h2>4. 核心功能详解</h2>
+<div id="按器官系统过滤" class="section level3">
+<h3>4.1 按器官系统过滤</h3>
+<p>用<code>system</code>参数指定要显示的器官系统（如循环系统、呼吸系统）：</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># 只显示循环系统器官</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>circulatory_plot <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">data =</span> example_Data3,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">system =</span> <span class="st">&quot;circulatory&quot;</span>,  <span class="co"># 指定循环系统</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;循环系统数据可视化&quot;</span>  <span class="co"># 自定义标题</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co"># 查看所有支持的器官系统</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="fu">unique</span>(organ_systems<span class="sc">$</span>system)</span></code></pre></div>
+</div>
+<div id="自定义颜色方案" class="section level3">
+<h3>4.2 自定义颜色方案</h3>
+<p>通过以下参数调整颜色： -
+<code>fillcolor_organ</code>：器官的颜色方案（支持”plasma”、“viridis”等）
+- <code>fillcolor_outline</code>：人体轮廓的填充色 -
+<code>direction</code>：颜色梯度方向（1=默认，-1=反转）</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># 自定义颜色示例</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>custom_color_plot <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">data =</span> example_Data3,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">fillcolor_organ =</span> <span class="st">&quot;viridis&quot;</span>,    <span class="co"># 使用viridis配色</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">fillcolor_outline =</span> <span class="st">&quot;#E6F7FF&quot;</span>,  <span class="co"># 浅蓝色轮廓</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>,                 <span class="co"># 反转颜色梯度</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;自定义颜色方案&quot;</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="添加定量条形图" class="section level3">
+<h3>4.3 添加定量条形图</h3>
+<p>设置<code>organbar = TRUE</code>可在右侧添加条形图，方便数值对比：</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># 带条形图的可视化</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>bar_plot <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">data =</span> example_Data3,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="at">organbar =</span> <span class="cn">TRUE</span>,               <span class="co"># 启用条形图</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">organbar_title =</span> <span class="st">&quot;数值大小&quot;</span>,    <span class="co"># 条形图图例标题</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">organbar_digit =</span> <span class="dv">1</span>,            <span class="co"># 数值保留1位小数</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;带条形图的器官数据展示&quot;</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="器官名称映射处理非标准名称" class="section level3">
+<h3>4.4 器官名称映射（处理非标准名称）</h3>
+<p>如果数据中的器官名称不规范（如”Heart
+Tissue”），可通过<code>organ_name_mapping</code>映射到标准名称：</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># 定义名称映射规则</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>name_mapping <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="st">&quot;Heart Tissue&quot;</span> <span class="ot">=</span> <span class="st">&quot;heart&quot;</span>,    <span class="co"># &quot;Heart Tissue&quot;映射为&quot;heart&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="st">&quot;Liver Cells&quot;</span> <span class="ot">=</span> <span class="st">&quot;liver&quot;</span>,     <span class="co"># &quot;Liver Cells&quot;映射为&quot;liver&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>  <span class="st">&quot;Brain Region&quot;</span> <span class="ot">=</span> <span class="st">&quot;brain&quot;</span>     <span class="co"># &quot;Brain Region&quot;映射为&quot;brain&quot;</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>)</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co"># 应用映射</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>mapped_plot <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>  <span class="at">data =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>    <span class="at">organ =</span> <span class="fu">c</span>(<span class="st">&quot;Heart Tissue&quot;</span>, <span class="st">&quot;Liver Cells&quot;</span>, <span class="st">&quot;Brain Region&quot;</span>),</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a>    <span class="at">value =</span> <span class="fu">c</span>(<span class="dv">12</span>, <span class="dv">18</span>, <span class="dv">9</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>  ),</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a>  <span class="at">organ_name_mapping =</span> name_mapping,</span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;器官名称映射示例&quot;</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="数据聚合处理重复器官" class="section level3">
+<h3>4.5 数据聚合（处理重复器官）</h3>
+<p>当数据中存在重复器官（如多个”heart”条目），用<code>aggregate_method</code>指定聚合方式：</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># 对重复器官进行均值聚合</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>aggregated_plot <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="at">data =</span> <span class="fu">data.frame</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="at">organ =</span> <span class="fu">c</span>(<span class="st">&quot;heart&quot;</span>, <span class="st">&quot;heart&quot;</span>, <span class="st">&quot;liver&quot;</span>),  <span class="co"># 重复的&quot;heart&quot;</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>    <span class="at">value =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">15</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  ),</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">aggregate_method =</span> <span class="st">&quot;mean&quot;</span>,  <span class="co"># 可选：&quot;mean&quot;（均值）、&quot;sum&quot;（求和）、&quot;count&quot;（计数）</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;重复器官数据聚合（均值）&quot;</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>)</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co"># 查看聚合结果</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>aggregated_plot<span class="sc">$</span>clean_data</span></code></pre></div>
+<pre><code>##   organ value
+## 1 heart    15  # 两个heart的均值：(10+20)/2=15
+## 2 liver    15</code></pre>
+</div>
+<div id="显示所有器官轮廓" class="section level3">
+<h3>4.6 显示所有器官轮廓</h3>
+<p>设置<code>showall = TRUE</code>可显示所有器官的灰色轮廓，突出目标器官：</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">OrgHeatmap</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="at">data =</span> example_Data3,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">showall =</span> <span class="cn">TRUE</span>,  <span class="co"># 显示所有器官轮廓</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;显示所有器官轮廓的可视化&quot;</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="常见问题解决" class="section level2">
+<h2>5. 常见问题解决</h2>
+<div id="警告the-following-organs-have-no-coordinate-data" class="section level3">
+<h3>5.1 警告：“The following organs have no coordinate data”</h3>
+<ul>
+<li><strong>原因</strong>：部分器官名称在包中没有对应的坐标数据（无法可视化）。</li>
+<li><strong>解决</strong>：
+<ol style="list-style-type: decimal">
+<li><p>检查器官名称是否正确（参考<code>unique(organ_systems$organ)</code>中的标准名称）。</p></li>
+<li><p>用<code>valid_organs</code>参数过滤无效器官：</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>valid_plot <span class="ot">&lt;-</span> <span class="fu">OrgHeatmap</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">data =</span> example_Data3,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">valid_organs =</span> <span class="fu">c</span>(<span class="st">&quot;heart&quot;</span>, <span class="st">&quot;liver&quot;</span>, <span class="st">&quot;brain&quot;</span>)  <span class="co"># 只保留这三个器官</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>)</span></code></pre></div></li>
+</ol></li>
+</ul>
+</div>
+<div id="条形图不显示" class="section level3">
+<h3>5.2 条形图不显示</h3>
+<ul>
+<li><strong>原因</strong>：数据中没有有效器官，或<code>organbar</code>参数未开启。</li>
+<li><strong>解决</strong>：确保<code>organbar = TRUE</code>且处理后的<code>clean_data</code>不为空。</li>
+</ul>
+</div>
+<div id="模糊匹配警告" class="section level3">
+<h3>5.3 模糊匹配警告</h3>
+<ul>
+<li><strong>解决</strong>：</li>
+</ul>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;stringdist&quot;</span>)  <span class="co"># 安装模糊匹配所需的包</span></span></code></pre></div>
+</div>
+</div>
+<div id="总结" class="section level2">
+<h2>6. 总结</h2>
+<p><code>OrgHeatmap</code>简化了人体器官数据的可视化，核心功能对应的参数如下：</p>
+<table>
+<thead>
+<tr class="header">
+<th>功能</th>
+<th>关键参数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>器官系统过滤</td>
+<td><code>system</code></td>
+</tr>
+<tr class="even">
+<td>颜色自定义</td>
+<td><code>fillcolor_organ</code>、<code>direction</code></td>
+</tr>
+<tr class="odd">
+<td>条形图配置</td>
+<td><code>organbar</code>、<code>organbar_digit</code></td>
+</tr>
+<tr class="even">
+<td>名称标准化</td>
+<td><code>organ_name_mapping</code></td>
+</tr>
+<tr class="odd">
+<td>数据聚合</td>
+<td><code>aggregate_method</code></td>
+</tr>
+</tbody>
+</table>
+<p>查看完整参数说明：<code>?OrgHeatmap</code></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
