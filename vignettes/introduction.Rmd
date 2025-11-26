@@ -1,8 +1,9 @@
+```r
 ---
-title: "OrgHeatmap入门教程"
+title: "OrgHeatmap Tutorial"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{OrgHeatmap入门教程}
+  %\VignetteIndexEntry{OrgHeatmap Tutorial}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
   %\VignetteDepends{OrgHeatmap} 
@@ -12,250 +13,411 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-   fig.width = 7,
+  fig.width = 7,
   fig.height = 5,
   dev = "png",  
   dpi = 150
 )
-
-# 解决中文显示问题
-if (.Platform$OS.type == "windows") {
-  # Windows系统设置中文字体
-  windowsFonts(sans = windowsFont("SimHei"))
-} else if (Sys.info()["sysname"] == "Darwin") {
-  # macOS系统设置中文字体
-  ggplot2::theme_set(ggplot2::theme_minimal(base_family = "Heiti TC"))
-} else {
-  # Linux系统设置中文字体
-  ggplot2::theme_set(ggplot2::theme_minimal(base_family = "WenQuanYi Micro Hei"))
-}
-
 ```
 
 ```{r setup}
 library(OrgHeatmap)
 ```
 
-## 1. 包简介
-
-`OrgHeatmap`是一个用于在人体器官图上可视化数值数据（如基因表达量、生理指标）的工具包。它支持自定义颜色方案、按器官系统过滤数据，以及添加条形图进行定量比较，帮助直观展示数据在人体解剖结构中的分布。
 
 
-## 2. 安装与数据准备
+## 1. Package Introduction
 
-### 2.1 安装包
+`OrgHeatmap` is an R package for visualizing numerical data (such as gene expression, protein abundance, or physiological indicators) on anatomical maps of human, mouse, and organelle structures. It provides flexible customization options for color schemes, organ system filtering, and quantitative comparisons.
+
+
+
+## 2. Installation and Data Preparation
+
+### 2.1 Package Installation
 ```r
-# 从本地安装（替换为你的包文件路径）
-install.packages("OrgHeatmap_0.1.0.tar.gz", repos = NULL, type = "source")
+# Install from local source
+install.packages("OrgHeatmap_0.3.1.tar.gz", repos = NULL, type = "source")
 
-# 若已上传到GitHub，可从仓库安装
-# devtools::install_github("你的用户名/OrgHeatmap")
+# Or install from GitHub
+# devtools::install_github("QiruiShen439/OrgHeatmap")
 
-# 如果未安装devtools，请先执行：
-# install.packages("devtools")
-
-# 安装依赖包（若运行时提示缺失）
-install.packages(c("ggpolypath", "patchwork", "dplyr", "stringdist", "ggplot2"))
+# Install dependencies if needed
+install.packages(c("ggpolypath", "patchwork", "dplyr", "stringdist", "ggplot2", "sf", "viridis"))
 ```
 
-### 2.2 加载示例数据
-包内置了示例数据，方便快速上手：
+### 2.2 Loading Example Data
+The package includes comprehensive example datasets:
 ```r
-# 加载示例数据
-data(example_Data3, package = "OrgHeatmap")
+# Load built-in example datasets
+data_path <- system.file("extdata", "exampledata.Rdata", package = "OrgHeatmap")
+load(data_path)
 
-# 验证数据是否加载成功
-if (!exists("example_Data3")) {
-  stop("示例数据加载失败，请检查包是否正确安装。")
-}
+# Check available datasets
+ls(pattern = "example_Data")
+```
 
-# 查看数据结构（第一列是器官名称，第二列是数值）
-head(example_Data3)
-```
-```
-##           organ value
-##10   lymph_nodes 0.029
-##9           lung 0.041
-##5         uterus 0.026
-##17 adrenal_gland 0.014
-##25        tongue 0.038
-##18       stomach 0.050
+```{r data-preview, echo=FALSE}
+# Preview example data structure
+data_path <- system.file("extdata", "exampledata.Rdata", package = "OrgHeatmap")
+load(data_path)
+cat("Example Data 1 (Mouse):\n")
+print(head(example_Data1))
+cat("\nExample Data 3 (Human):\n")
+print(head(example_Data3))
 ```
 
 
-## 3. 基础可视化
 
-### 3.1 简单绘制器官图
-使用核心函数`OrgHeatmap()`，传入数据即可生成基础可视化结果：
+## 3. Basic Visualization
+
+### 3.1 Simple Organ Visualization
 ```r
-# 基础可视化（使用默认参数）
+# Basic visualization with default parameters
 result <- OrgHeatmap(data = example_Data3)
-# 显示图形
 print(result$plot)
 ```
 
-### 3.2 理解输出结果
-函数返回一个列表，包含可视化结果和处理后的数据：
+### 3.2 Understanding Output Structure
+The function returns a comprehensive list with multiple components:
 ```r
-# 查看返回结果的结构
+# Explore returned results
 names(result)
 ```
-```
-## [1] "plot"         "clean_data"   "system_used"  "mapped_organs"
-## [5] "missing_organs" "total_value"
-```
 
-关键元素说明：
-- `plot`：可视化图表（ggplot2对象，可直接打印）
-- `clean_data`：清洗后的数据集（器官名称标准化+数值处理）
-- `missing_organs`：没有坐标数据的器官（无法可视化的名称）
-- `total_value`：所有器官数值的总和
+Key components:
+- `plot`: Visualization object (ggplot2)
+- `clean_data`: Processed data with standardized organ names
+- `system_used`: Organ system used for filtering
+- `mapped_organs`: Successfully mapped organ names
+- `missing_organs`: Organs without coordinate data
+- `total_value`: Sum of all values
 
 
-## 4. 核心功能详解
 
-### 4.1 按器官系统过滤
-用`system`参数指定要显示的器官系统（如循环系统、呼吸系统）：
+## 4. Core Features
+
+### 4.1 Multi-Species Support
 ```r
-# 只显示循环系统器官
+# Human visualization (default)
+human_result <- OrgHeatmap(example_Data3, title = "Human Organ Visualization")
+
+# Mouse visualization
+mouse_result <- OrgHeatmap(
+  data = example_Data1,
+  species = "mouse",
+  system = "digestive",
+  title = "Mouse Digestive System"
+)
+
+# Organelle visualization
+organelle_data <- data.frame(
+  organ = c("mitochondrion", "nucleus", "endoplasmic_reticulum"),
+  value = c(15.2, 8.7, 6.3)
+)
+organelle_result <- OrgHeatmap(
+  data = organelle_data,
+  species = "organelle",
+  title = "Organelle Expression"
+)
+```
+
+### 4.2 Organ System Filtering
+```r
+# Filter by specific organ system
 circulatory_plot <- OrgHeatmap(
   data = example_Data3,
-  system = "circulatory",  # 指定循环系统
-  title = "循环系统数据可视化"  # 自定义标题
+  system = "circulatory",
+  title = "Circulatory System Data"
 )
 
-# 查看所有支持的器官系统
-unique(organ_systems$system)
+# View available systems for human
+unique(human_organ_systems$system)
 ```
 
+### 4.3 Advanced Color Configuration
 
-### 4.2 自定义颜色方案
-通过以下参数调整颜色：
-- `fillcolor_organ`：器官的颜色方案（支持"plasma"、"viridis"等）
-- `fillcolor_outline`：人体轮廓的填充色
-- `direction`：颜色梯度方向（1=默认，-1=反转）
-
+#### Using RColorBrewer Palettes
 ```r
-# 自定义颜色示例
-custom_color_plot <- OrgHeatmap(
+# Unified color scheme with palette
+palette_plot <- OrgHeatmap(
   data = example_Data3,
-  fillcolor_organ = "viridis",    # 使用viridis配色
-  fillcolor_outline = "#E6F7FF",  # 浅蓝色轮廓
-  direction = -1,                 # 反转颜色梯度
-  title = "自定义颜色方案"
+  palette = "PuBuGn",
+  reverse_palette = TRUE,
+  title = "PuBuGn Palette (Reversed)"
 )
 ```
 
-
-### 4.3 添加定量条形图
-设置`organbar = TRUE`可在右侧添加条形图，方便数值对比：
+#### Custom Color Gradients
 ```r
-# 带条形图的可视化
-bar_plot <- OrgHeatmap(
+# Custom 2-color gradient
+custom_2color <- OrgHeatmap(
   data = example_Data3,
-  organbar = TRUE,               # 启用条形图
-  organbar_title = "数值大小",    # 条形图图例标题
-  organbar_digit = 1,            # 数值保留1位小数
-  title = "带条形图的器官数据展示"
-)
-```
-
-
-### 4.4 器官名称映射（处理非标准名称）
-如果数据中的器官名称不规范（如"Heart Tissue"），可通过`organ_name_mapping`映射到标准名称：
-```r
-# 定义名称映射规则
-name_mapping <- c(
-  "Heart Tissue" = "heart",    # "Heart Tissue"映射为"heart"
-  "Liver Cells" = "liver",     # "Liver Cells"映射为"liver"
-  "Brain Region" = "brain"     # "Brain Region"映射为"brain"
+  color_low = "#FFE4E1",
+  color_high = "#DC143C",
+  title = "Custom 2-Color Gradient"
 )
 
-# 应用映射
-mapped_plot <- OrgHeatmap(
-  data = data.frame(
-    organ = c("Heart Tissue", "Liver Cells", "Brain Region"),
-    value = c(12, 18, 9)
-  ),
-  organ_name_mapping = name_mapping,
-  title = "器官名称映射示例"
-)
-```
-
-
-### 4.5 数据聚合（处理重复器官）
-当数据中存在重复器官（如多个"heart"条目），用`aggregate_method`指定聚合方式：
-```r
-# 对重复器官进行均值聚合
-aggregated_plot <- OrgHeatmap(
-  data = data.frame(
-    organ = c("heart", "heart", "liver"),  # 重复的"heart"
-    value = c(10, 20, 15)
-  ),
-  aggregate_method = "mean",  # 可选："mean"（均值）、"sum"（求和）、"count"（计数）
-  title = "重复器官数据聚合（均值）"
-)
-
-# 查看聚合结果
-aggregated_plot$clean_data
-```
-```
-##   organ value
-## 1 heart    15  # 两个heart的均值：(10+20)/2=15
-## 2 liver    15
-```
-
-
-
-### 4.6 显示所有器官轮廓
-设置`showall = TRUE`可显示所有器官的灰色轮廓，突出目标器官：
-```r
-OrgHeatmap(
+# Custom 3-color gradient
+custom_3color <- OrgHeatmap(
   data = example_Data3,
-  showall = TRUE,  # 显示所有器官轮廓
-  title = "显示所有器官轮廓的可视化"
+  color_low = "#FF0000",
+  color_mid = "#FFFF00", 
+  color_high = "#0000FF",
+  title = "Custom 3-Color Gradient"
+)
+```
+
+#### Separate Bar Chart Colors
+```r
+# Different colors for heatmap and bar chart
+separate_colors <- OrgHeatmap(
+  data = example_Data3,
+  color_low = "#F7FBFF",
+  color_high = "#08306B",
+  organbar_low = "#FFF7BC",
+  organbar_high = "#D95F0E",
+  organbar = TRUE,
+  title = "Separate Heatmap/Bar Colors"
+)
+```
+
+### 4.4 Bar Chart Configuration
+```r
+# Enable bar chart with customization
+bar_chart_plot <- OrgHeatmap(
+  data = example_Data3,
+  organbar = TRUE,
+  organbar_title = "Expression Level",
+  organbar_digit = 2,
+  organbar_color = "skyblue",  # Solid color for bars
+  title = "Custom Bar Chart"
+)
+```
+
+### 4.5 Organ Name Mapping and Standardization
+```r
+# Handle non-standard organ names
+custom_mapping <- c(
+  "adrenal" = "adrenal_gland",
+  "lymph node" = "lymph_node", 
+  "soft tissue" = "muscle"
+)
+
+mapped_result <- OrgHeatmap(
+  data = example_Data3,
+  organ_name_mapping = custom_mapping,
+  title = "Custom Organ Name Mapping"
+)
+```
+
+### 4.6 Data Aggregation Methods
+```r
+# Example data with duplicate organs
+dup_data <- data.frame(
+  organ = c("heart", "heart", "liver", "brain", "brain", "brain"),
+  value = c(10, 20, 15, 5, 10, 15)
+)
+
+# Mean aggregation
+mean_result <- OrgHeatmap(
+  data = dup_data,
+  aggregate_method = "mean",
+  title = "Mean Aggregation"
+)
+
+# Sum aggregation  
+sum_result <- OrgHeatmap(
+  data = dup_data,
+  aggregate_method = "sum",
+  title = "Sum Aggregation"
+)
+```
+
+### 4.7 Display Options
+```r
+# Show all organ outlines for anatomical context
+showall_plot <- OrgHeatmap(
+  data = example_Data3,
+  showall = TRUE,
+  fillcolor_other = "#D3D3D3",
+  title = "All Organ Outlines Displayed"
+)
+
+# Hide body outline
+no_outline <- OrgHeatmap(
+  data = example_Data3,
+  outline = FALSE,
+  title = "Without Body Outline"
 )
 ```
 
 
-## 5. 常见问题解决
 
-### 5.1 警告：“The following organs have no coordinate data”
-- **原因**：部分器官名称在包中没有对应的坐标数据（无法可视化）。
-- **解决**：
-  1. 检查器官名称是否正确（参考`unique(organ_systems$organ)`中的标准名称）。
-  2. 用`valid_organs`参数过滤无效器官：
-     ```r
-     valid_plot <- OrgHeatmap(
-       data = example_Data3,
-       valid_organs = c("heart", "liver", "brain")  # 只保留这三个器官
-     )
-     ```
+## 5. Advanced Usage
 
+### 5.1 Custom Organ System Mapping
+```r
+# Extend default organ system mapping
+custom_system_map <- rbind(
+  human_organ_systems,
+  data.frame(
+    organ = c("prostate", "custom_organ"),
+    system = c("reproductive", "custom_system"),
+    stringsAsFactors = FALSE
+  )
+)
 
-### 5.2 条形图不显示
-- **原因**：数据中没有有效器官，或`organbar`参数未开启。
-- **解决**：确保`organbar = TRUE`且处理后的`clean_data`不为空。
-
-### 5.3 模糊匹配警告
-- **解决**：
-```r 
-install.packages("stringdist")  # 安装模糊匹配所需的包
+custom_system_result <- OrgHeatmap(
+  data = example_Data3,
+  organ_system_map = custom_system_map,
+  system = "custom_system",
+  title = "Custom Organ System"
+)
 ```
-   
+
+### 5.2 Column Name Customization
+```r
+# Data with custom column names
+custom_data <- data.frame(
+  organ_name = c("heart", "liver", "brain"),
+  expression_level = c(15, 25, 20)
+)
+
+custom_col_result <- OrgHeatmap(
+  data = custom_data,
+  organ_col = "organ_name",
+  value_col = "expression_level",
+  title = "Custom Column Names"
+)
+```
+
+### 5.3 Saving Results
+```r
+# Save plot and cleaned data
+save_result <- OrgHeatmap(
+  data = example_Data3,
+  save_plot = TRUE,
+  plot_path = file.path(tempdir(), "my_visualization.png"),
+  plot_width = 12,
+  plot_height = 10,
+  plot_dpi = 300,
+  save_clean_data = TRUE,
+  clean_data_path = file.path(tempdir(), "cleaned_data.rds"), 
+  title = "Saved Visualization"
+)
+
+# Access saved files
+list.files(path = tempdir(),pattern = "my_visualization|cleaned_data")
+```
 
 
-## 6. 总结
 
-`OrgHeatmap`简化了人体器官数据的可视化，核心功能对应的参数如下：
+## 6. Color System Priority
 
-| 功能                | 关键参数                     |
-|---------------------|------------------------------|
-| 器官系统过滤        | `system`                     |
-| 颜色自定义          | `fillcolor_organ`、`direction` |
-| 条形图配置          | `organbar`、`organbar_digit`  |
-| 名称标准化          | `organ_name_mapping`         |
-| 数据聚合            | `aggregate_method`           |
+The package uses a unified color system with clear priority levels:
 
-查看完整参数说明：`?OrgHeatmap`
+### Priority Order:
+1. **Highest**: `organbar_low`/`organbar_high` (bar chart colors)
+2. **Medium**: `color_low`/`color_high`/`color_mid` (heatmap colors)  
+3. **Lowest**: `palette` with optional `reverse_palette`
+
+### Example demonstrating priority:
+```r
+# organbar colors take precedence
+priority_example <- OrgHeatmap(
+  data = example_Data3,
+  organbar_low = "blue",      # Highest priority
+  color_low = "red",          # Overridden by organbar_low
+  palette = "YlOrRd",         # Lowest priority
+  organbar = TRUE,
+  title = "Color Priority Example"
+)
+```
+
+
+
+## 7. Troubleshooting Common Issues
+
+### 7.1 Missing Organ Coordinates
+```r
+# Check available organs for each species
+cat("Human organs:", names(human_organ_coord), "\n")
+cat("Mouse organs:", names(mouse_organ_coord), "\n") 
+cat("Organelle organelles:", names(organelle_organ_coord), "\n")
+
+# Filter valid organs only
+valid_result <- OrgHeatmap(
+  data = example_Data3,
+  valid_organs = c("heart", "liver", "brain", "kidney")
+)
+```
+
+### 7.2 Invalid Color Specifications
+```r
+# Validate RColorBrewer palettes
+RColorBrewer::brewer.pal.info
+
+# Valid viridis options
+c("viridis", "plasma", "magma", "inferno", "cividis")
+```
+
+### 7.3 Installation Issues
+```r
+# Install all dependencies
+install.packages(c("sf", "ggpolypath", "patchwork", "stringdist", "viridis"))
+
+# Check package loading
+library(OrgHeatmap)
+packageVersion("OrgHeatmap")
+```
+
+
+
+## 8. Performance Tips
+
+### 8.1 For Large Datasets
+```r
+# Use system filtering to reduce rendering time
+filtered_plot <- OrgHeatmap(
+  data = large_dataset,
+  system = "specific_system",
+  showall = FALSE
+)
+```
+
+### 8.2 High-Resolution Output
+```r
+# For publication-quality figures
+publication_plot <- OrgHeatmap(
+  data = example_Data3,
+  save_plot = TRUE,
+  plot_path = file.path(tempdir(), "publication_figure.tiff"), 
+  plot_width = 8,
+  plot_height = 6,
+  plot_dpi = 600,
+  plot_device = "tiff"
+)
+```
+
+
+
+## 9. Summary
+
+`OrgHeatmap` provides comprehensive tools for biological data visualization with the following key features:
+
+| Feature | Key Parameters |
+|---------|----------------|
+| Multi-species | `species = "human"/"mouse"/"organelle"` |
+| System filtering | `system`, `organ_system_map` |
+| Color configuration | `palette`, `color_low/color_high`, `organbar_low/organbar_high` |
+| Bar charts | `organbar`, `organbar_title`, `organbar_color` |
+| Name standardization | `organ_name_mapping` |
+| Data aggregation | `aggregate_method = "mean"/"sum"/"count"` |
+| Output control | `save_plot`, `save_clean_data` |
+
+For complete parameter documentation: `?OrgHeatmap`
+
+
+The package is designed to handle real-world biological data challenges including non-standard organ names, duplicate entries, and flexible visualization requirements across multiple species and subcellular structures.
 

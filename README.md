@@ -1,36 +1,39 @@
  # OrgHeatmap
 
-`OrgHeatmap` is an R package for visualizing numerical data (e.g., gene expression levels, physiological indicators) on human organ diagrams. It supports custom color schemes, organ system filtering, and quantitative bar charts to intuitively display data distribution across anatomical structures.
+`OrgHeatmap` is an R package for visualizing numerical data (e.g., gene expression levels, physiological indicators) on human, mouse, and organelle diagrams. It supports custom color schemes, organ system filtering, and quantitative bar charts to intuitively display data distribution across anatomical structures.
 
 
 ## Features
-- **Visualize data directly on human organ illustrations**
-- **Filter visualization by organ systems (circulatory, respiratory, etc.)**
-- **Customizable color gradients and outline styles**
-- **Integrate bar charts for quantitative comparison**
-- **Handle non-standard organ names with mapping functionality**
-- **Automatically aggregate duplicate organ entries (mean, sum, count)**
+- **Multi-species Support: Visualize data on human, mouse, or organelle diagrams**
+- **Flexible Color Schemes: Unified color configuration for heatmaps and bar charts**
+- **Organ System Filtering: Focus on specific anatomical systems (circulatory, respiratory, etc.)**
+- **Quantitative Comparison: Integrated bar charts for value comparison**
+- **Name Standardization: Handle non-standard organ names with mapping functionality**
+- **Data Aggregation: Automatic handling of duplicate organ entries (mean, sum, count)**
+- **High-Quality Output: Save plots and cleaned data in multiple formats**
 
 
 ## Installation
 
 ### From Local Source
-Replace with your actual package file path:
 ```r
-install.packages("OrgHeatmap_0.1.0.tar.gz", repos = NULL, type = "source")
+install.packages("OrgHeatmap_0.3.1.tar.gz", repos = NULL, type = "source")
 ```
 
 ### From GitHub 
-First install devtools if missing, then install from GitHub:
 ```r
 # Install devtools if not already installed
 if (!require("devtools")) install.packages("devtools")
 devtools::install_github("QiruiShen439/OrgHeatmap")
 ```
+
 ### Required Dependencies
-Install all dependent packages to ensure smooth operation:
+The package automatically checks for and installs required dependencies:
 ```r
-install.packages(c("ggpolypath", "patchwork", "dplyr", "stringdist", "ggplot2"))
+# Core dependencies (automatically checked)
+install.packages(c("sf", "dplyr", "stringdist", "ggpolypath", "patchwork", 
+                   "viridis", "data.table", "stringr", "RColorBrewer", 
+                   "ggplot2", "purrr"))
 ```
 
 ## Quick Start
@@ -40,152 +43,245 @@ install.packages(c("ggpolypath", "patchwork", "dplyr", "stringdist", "ggplot2"))
 library(OrgHeatmap)
 
 # Load built-in example dataset
-file_path <- system.file("extdata", "exampledata.Rdata", package = "OrgHeatmap")
-load(file_path)
+data_path <- system.file("extdata", "exampledata.Rdata", package = "OrgHeatmap")
+load(data_path)
 
-# Inspect data structure (organ names and corresponding values)
+# Inspect data structure
 head(example_Data3)
 ```
 
-### 2. Basic Visualization
-Create a basic organ visualization with default settings:
+### 2. Basic Human Organ Visualization
 ```r
 # Create basic organ visualization with default settings
 result <- OrgHeatmap(data = example_Data3)
-
-# Display the generated plot
 print(result$plot)
 ```
 
-### 3. System-Specific Visualization
-Visualize only organs from a specific system (e.g., circulatory system):
+
+### 3. Mouse Organ Visualization
 ```r
-# Visualize only organs from the circulatory system
+# Visualize mouse digestive system
+mouse_result <- OrgHeatmap(
+  data = example_Data1,
+  species = "mouse",
+  system = "digestive",
+  palette = "PuBu",
+  title = "Mouse Digestive System"
+)
+print(mouse_result$plot)
+```
+
+
+### 4. Organelle Visualization
+```r
+# Create organelle data
+organelle_data <- data.frame(
+  organ = c("mitochondrion", "nucleus", "endoplasmic_reticulum", "cell_membrane"),
+  value = c(15.2, 8.7, 6.3, 6.8)
+)
+
+# Visualize organelles
+organelle_result <- OrgHeatmap(
+  data = organelle_data,
+  species = "organelle",
+  title = "Organelle Expression"
+)
+print(organelle_result$plot)
+```
+
+
+
+## Advanced Usage
+
+### System-Specific Visualization
+```r
+# Focus on specific organ systems
 circulatory_plot <- OrgHeatmap(
   data = example_Data3,
   system = "circulatory",
-  title = "Circulatory System Data Visualization"
+  title = "Circulatory System Data",
+  showall = TRUE  # Show all organ outlines for context
 )
-
-# Display the plot
 print(circulatory_plot$plot)
 ```
 
-### 4. Visualization with Bar Chart
-Create visualization with accompanying bar chart for quantitative comparison:
+
+### Custom Color Configuration
+#### Using RColorBrewer Palettes
 ```r
-bar_plot <- OrgHeatmap(
-  data = example_Data3,
-  organbar = TRUE,
-  organbar_title = "Value Distribution",
-  organbar_digit = 1,
-  title = "Organ Data Visualization with Bar Chart"
-)
-
-# Display the combined plot
-print(bar_plot$plot)
-```
-
-## Advanced: Custom Color Configuration 
-The package provides two flexible ways to configure visualization colors—direct palette usage (for simplicity) and unified color schemes via define_organ_colors (for fine control).
-
-### 1. Using RColorBrewer Palettes Directly (Recommended for Beginners) 
-Visualize respiratory system data with a pre-built palette, reversed color order, and custom middle color:
-```r
-# Visualize respiratory system with "PuBuGn" palette
-respiratory_palette_plot <- OrgHeatmap(
-  data = example_Data3,
-  system = "respiratory",          # Target organ system
-  palette = "PuBuGn",              # RColorBrewer palette (blue-purple-green)
-  reverse_palette = TRUE,          # Reverse palette: low value = dark green, high value = purple
-  color_mid = "#87CEEB",           # Custom middle color (sky blue) for 3-color gradient
-  organbar = TRUE,                 # Show bar chart
-  organbar_title = "Mean Value",   # Bar chart legend title
-  organbar_digit = 2,              # Keep 2 decimal places for bar values
-  showall = TRUE,                  # Show grey outlines of all organs (not just respiratory)
-  title = "Respiratory System (PuBuGn Palette)",
-  save_plot = TRUE, # Enable plot saving
-  plot_path = file.path(getwd(), "respiratory_palette_plot.png"), # Custom path for saving the plot
-  plot_width = 10, # Plot width (no need to repeat in ggsave)
-  plot_height = 8, # Plot height
-  plot_dpi = 300 # Plot resolution (function defaults to bg="white", no need to specify separately)
-  )
-
-# Display the plot
-print(respiratory_palette_plot$plot)
-
-```
-
-### 2. Using `define_organ_colors` for Unified Color Schemes (Advanced) 
-For consistent colors across multiple plots (e.g., a series of figures for a paper), use define_organ_colors to generate a reusable color configuration first:
-#### Step 1: Generate a Custom Color Scheme
-```r
-respiratory_colors <- define_organ_colors(
-  palette = "PuBuGn",              # Base RColorBrewer palette
-  reverse = TRUE,                  # Reverse palette order
-  mid = "#87CEEB",                 # Custom middle color (sky blue)
-  fillcolor_other = "#E8F4F8",     # Lighter fill for non-target organs (reduces distraction)
-  fillcolor_outline = "#F0E6D2",   # Warmer body outline color (matches package default)
-  outline_color = "#333333"        # Darker outline (better contrast for small organs)
-)
-```
-#### Step 2: Apply the Color Scheme to Visualization
-```r
-custom_color_plot <- OrgHeatmap(
+respiratory_plot <- OrgHeatmap(
   data = example_Data3,
   system = "respiratory",
-  # Apply pre-defined colors from the configuration
-  color_low = respiratory_colors$fillcolor_low,    # Low value color (from palette)
-  color_high = respiratory_colors$fillcolor_high,  # High value color (from palette)
-  color_mid = respiratory_colors$fillcolor_mid,    # Middle value color (custom)
-  fillcolor_other = respiratory_colors$fillcolor_other,  # Non-target organ color
-  fillcolor_outline = respiratory_colors$fillcolor_outline,  # Body outline color
-  # Plot styling
+  palette = "PuBuGn",           # RColorBrewer palette
+  reverse_palette = TRUE,       # Reverse color order
+  color_mid = "#87CEEB",        # Custom middle color
   organbar = TRUE,
   organbar_title = "Mean Value",
-  organbar_digit = 2,
-  showall = TRUE,
-  title = "Respiratory System (Custom Color Scheme)",
-  # Optional: Save plot and cleaned data
-  save_plot = TRUE,
-  plot_path = file.path(getwd(), "respiratory_custom_color_plot.png"),
-  save_clean_data = TRUE,
-  clean_data_path = file.path(getwd(), "respiratory_clean_data.rds")
+  title = "Respiratory System (PuBuGn Palette)"
 )
-
-# Display the plot
-print(custom_color_plot$plot)
-
-# Inspect the color configuration (for reuse in other plots)
-str(respiratory_colors)
 ```
 
-## Key Advantages of `define_organ_colors`
-- **Color Validation**: Automatically checks if colors are valid (e.g., valid hex codes like #87CEEB or named colors like "skyblue").
-- **Consistency**: Ensures the same color scheme across heatmaps, bar charts, and organ outlines.
-- **Flexibility**: Supports both 2-color (low-high) and 3-color (low-mid-high) gradients.
-- **Fallback**: Uses RColorBrewer palette colors if custom colors are not specified (avoids missing values).
+#### Custom Gradient Colors
+```r
+custom_plot <- OrgHeatmap(
+  data = example_Data3,
+  color_low = "#F7FBFF",        # Light blue for low values
+  color_high = "#08306B",       # Dark blue for high values
+  color_mid = "#6BAED6",        # Medium blue for middle values
+  organbar_low = "#FFF7BC",     # Light yellow for bar chart low
+  organbar_high = "#D95F0E",    # Dark orange for bar chart high
+  title = "Custom Color Gradient"
+)
+```
+
+
+### Organ Name Mapping
+```r
+# Custom organ name standardization
+custom_mapping <- c(
+  "adrenal" = "adrenal_gland",
+  "lymph node" = "lymph_node",
+  "soft tissue" = "muscle"
+)
+
+mapped_plot <- OrgHeatmap(
+  data = expr_data,
+  organ_name_mapping = custom_mapping,
+  value_col = "expression",
+  title = "TP53 Expression with Custom Mapping"
+)
+```
+
+
+### Custom Organ System Mapping
+```r
+# Extend default organ system mapping
+prostate_organ_systems <- rbind(
+  human_organ_systems,
+  data.frame(
+    organ = c("prostate", "bone", "lymph_node", "adrenal_gland"),
+    system = c("reproductive", "musculoskeletal", "lymphatic", "endocrine"),
+    stringsAsFactors = FALSE
+  )
+)
+
+extended_plot <- OrgHeatmap(
+  data = expr_data,
+  organ_system_map = prostate_organ_systems,
+  system = "reproductive",
+  title = "Extended Organ System Mapping"
+)
+```
+
+
+### Output and Saving
+#### Save Plot and Data
+```r
+result <- OrgHeatmap(
+  data = example_Data3,
+  system = "circulatory",
+  save_plot = TRUE,
+  plot_path = file.path(getwd(), "circulatory_system.png"),
+  plot_width = 12,
+  plot_height = 10,
+  plot_dpi = 300,
+  plot_device = "png",
+  save_clean_data = TRUE,
+  clean_data_path = file.path(getwd(), "cleaned_data.rds")
+)
+```
+
+#### Access Results
+```r
+# Access all returned components
+print(result$plot)           # ggplot2 object
+head(result$clean_data)      # Cleaned data frame
+result$system_used          # System used for filtering
+result$mapped_organs        # Standardized organ names
+result$missing_organs       # Organs without coordinates
+result$total_value          # Sum of all values
+```
+
+
+## Color Configuration Details
+The package uses a unified color system with the following priority:
+1.**Highest Priority**: organbar_low/organbar_high (bar chart colors)
+2.**Medium Priority**: color_low/color_high/color_mid (heatmap colors)
+3.**Lowest Priority**: palette with optional reverse_palette
+
+### Supported Color Options
+**RColorBrewer Palettes**: "YlOrRd", "PuBuGn", "Blues", etc.
+**Viridis Palettes**: "viridis", "plasma", "magma", "inferno", "cividis"
+**Custom Colors**: Any valid color name or hex code
+
+
+
+## Parameter Reference
+-`species`: "human", "mouse", or "organelle"
+-`system`: Filter by organ system (not applicable for organelles)
+-`palette`: RColorBrewer palette name for unified coloring
+-`organbar`: Show/hide quantitative bar chart
+-`showall`: Display all organ outlines for anatomical context
+-`organ_name_mapping`: Standardize non-standard organ names
+-`aggregate_method`: "mean", "sum", or "count" for duplicate organs
+
+
+
+## Examples Dataset
+The package includes comprehensive example datasets:
+-`example_Data1`
+-`example_Data2`
+-`example_Data3`
+-`expr_data`
+
+
+
+## Troubleshooting
+
+### Common Issues
+
+#### Missing Organs
+```r
+# Check available organs in your species
+names(human_organ_coord)  # For human
+names(mouse_organ_coord)  # For mouse  
+names(organelle_organ_coord)  # For organelles
+```
+
+#### Color Configuration
+```r
+# Validate RColorBrewer palette names
+RColorBrewer::brewer.pal.info
+```
+
+#### Installation Issues
+```r
+# Install all dependencies manually if needed
+install.packages(c("sf", "ggpolypath", "patchwork", "stringdist"))
+```
+
+#### Plot Not Generating
+1.Ensure data has valid numeric values in the specified value column
+2.Check that organ names match the coordinate data after standardization
+3.Verify that the specified system contains organs with data
+
+
 
 ## Detailed Documentation
 For comprehensive tutorials and parameter explanations:
 ```r
-# Access built-in vignettes
-browseVignettes("OrgHeatmap")
+# Access function documentation
+?OrgHeatmap
 
-# View function documentation
-?OrgHeatmap          # Main visualization function
+# View all package vignettes
+browseVignettes("OrgHeatmap")
 ```
 
-## Troubleshooting
-- **Missing organs**: Check names against `unique(organ_systems$organ)` for valid identifiers
-- **Name mapping issues**: Use `organ_name_mapping` parameter to standardize non-standard names
-- **Bar chart not displaying**: Ensure `organbar = TRUE` and valid data exists in `clean_data`
-- **Installation errors**: Verify all dependencies are installed and up-to-date
 
 ## Maintainer
 - Qirui Shen
 
 - Email: shenqr@i.smu.edu.cn
 
-
+- GitHub: QiruiShen439
 

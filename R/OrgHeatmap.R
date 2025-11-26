@@ -1,24 +1,26 @@
-#' Visualization Tool for Human Organ Data
+#' Visualization Tool for Human, Mouse and Organelle Data
 #' 
-#' This tool visualizes numerical data (such as gene expression) on a human organ map.
+#' This tool visualizes numerical data (such as gene expression) on a human, mouse or organelle map.
 #' It supports custom color schemes, organ system filtering, and bar charts for quantitative comparison.
 #' 
 #' @param data Data frame with at least two columns: organ name and corresponding value
-#' @param system Optional character vector specifying organ system to display
+#' @param species Character, species to visualize, one of \code{"human"} (default), \code{"mouse"}, or \code{"organelle"}. 
+#'   Determines the default body/cell contour, organ coordinates, and organ-system mapping.
+#' @param system Optional character vector specifying organ system to display(not applicable for organelles)
 #' @param valid_organs Optional character vector of valid organ names for filtering
 #' @param sort_by_value Logical, default TRUE, sorts by value descending
 #' @param title Optional character vector for plot title
 #' @param showall Logical, default FALSE. If TRUE, shows all organ outlines (grey) with light grey fill (#EFEFEF) for non-target organs (to provide anatomical context).
-#' @param outline Logical, default TRUE, draws human outline
+#' @param outline Logical, default TRUE, draws human/cell outline
 #' @param palette Character, name of RColorBrewer palette (e.g., "YlOrRd", "PuBuGn") for unified color scheme (applies to both organ heatmap and bar chart if no custom colors are specified). 
 #'   Ignored if `color_low`/`color_high` (for heatmap) or `organbar_low`/`organbar_high` (for bar chart) are specified. Default: "YlOrRd" (suitable for highlighting high values).
 #' @param color_low Character, custom color for the **minimum value** of the organ heatmap (and bar chart if `organbar_low` is not specified). Overrides `palette` but is overridden by `organbar_low` (highest priority). Default: NULL.
 #' @param color_high Character, custom color for the **maximum value** of the organ heatmap (and bar chart if `organbar_high` is not specified). Overrides `palette` but is overridden by `organbar_high` (highest priority). Default: NULL.
 #' @param color_mid Character, optional color for the **middle value** of the organ heatmap (for 3-color gradients). Default: NULL.
 #' @param reverse_palette Logical, whether to reverse the color order of `palette`. Default: FALSE (low=light, high=dark).
-#' @param fillcolor_outline Character, default "#F5D5B8", fill color for outline
+#' @param fillcolor_outline Character, default "#F5D5B8" for human/mouse, "#F0F8FF" for organelle, fill color for outline
 #' @param fillcolor_organ Character, fallback color scheme for organs (supports viridis options: "viridis", "plasma", "magma", etc.). Only used if no `palette`, `color_low/color_high`, or `organbar_low/organbar_high` are specified. Default: "plasma".
-#' @param fillcolor_other Character, default "#D3D3D3", fill color for non-target organs
+#' @param fillcolor_other Character, default "#D3D3D3", fill color for non-target organelles
 #' @param organbar Logical, default TRUE, shows value bar chart
 #' @param organbar_title Optional character, title for bar chart legend
 #' @param organbar_digit Integer, default 4, digits for bar values
@@ -37,8 +39,8 @@
 #' @param organ_name_mapping Optional: Either a named vector (non-standard → standard names, e.g., c("adrenal" = "adrenal_gland")), 
 #'   a data frame (must contain columns specified by `original_col` and `standard_col`), or a CSV path (same column requirement). 
 #'   Internally processed by `create_organ_mapping()` for standardization (lowercase, underscores for spaces).
-#' @param organ_system_map Data frame, default organ_systems. Can be a custom data frame or CSV path 
-#'   (must contain 'organ' and 'system' columns), processed by internal `create_organ_mapping()`.
+#' @param organ_system_map Data frame, CSV path, or NULL (default). If NULL, uses species-specific defaults:
+#'   \code{human_organ_systems} for humans, \code{mouse_organ_systems} for mice, or \code{organelle_systems} for organelles.
 #' @param aggregate_method Character, aggregation method for duplicate organs 
 #'   (one of "mean" \code{default}, "sum", "count").
 #' @param organ_col Character, default "organ", column name for organs
@@ -69,11 +71,11 @@
 #'   example_Data3, 
 #'   organbar = TRUE,
 #'   save_plot = TRUE,  # Enable plot saving
-#'   plot_path = file.path(getwd(), "all_system.png"),  # Save to current directory
+#'   plot_path = file.path(tempdir(), "all_system.png"),  
 #'   plot_width = 10,
 #'   plot_height = 8,
 #'   save_clean_data = TRUE,  # Enable cleaned data saving
-#'   clean_data_path = file.path(getwd(), "all_system_clean_data.rds")
+#'   clean_data_path = file.path(tempdir(), "all_system_clean_data.rds")
 #' )
 #' print(result_all$plot)  # Print the plot to the console
 #' 
@@ -81,14 +83,14 @@
 #' result_circulatory <- OrgHeatmap(
 #'   example_Data3, 
 #'   system = "circulatory",
-#'   organbar = TRUE,
+#'  organbar = TRUE,
 #'   save_plot = TRUE,
-#'   plot_path = file.path(getwd(), "circulatory_system.png"),
-#'   plot_width = 10,
+#'  plot_path = file.path(tempdir(), "circulatory_system.png"),
+#'  plot_width = 10,
 #'   plot_height = 8,
 #'   plot_device = "png",  # Specify plot format
 #'   save_clean_data = TRUE,
-#'   clean_data_path = file.path(getwd(), "circulatory_clean_data.rds")
+#'   clean_data_path = file.path(tempdir(), "circulatory_clean_data.rds")
 #' )
 #' print(result_circulatory$plot)  # Print the plot to the console
 #' 
@@ -106,7 +108,7 @@
 #'organbar_digit = 2,
 #'showall = TRUE,
 #'save_plot = TRUE,
-#'plot_path = file.path(getwd(), "respiratory_palette.png")
+#'plot_path = file.path(tempdir(),"respiratory_palette.png")
 #'   # To use solid color for bars, add parameter: organbar_color = "skyblue"
 #'   # (overrides gradient and synchronizes with organ colors)
 #')
@@ -127,7 +129,7 @@
 #' 
 #' # Add prostate cancer-specific organs to system mapping
 #' prostate_organ_systems <- rbind(
-#'   organ_systems,  # Package's built-in organ system mapping
+#'   human_organ_systems,  # Package's built-in organ system mapping
 #'   data.frame(
 #'     organ = c("prostate", "bone", "lymph_node", "adrenal_gland"),
 #'     system = c("reproductive", "musculoskeletal", "lymphatic", "endocrine"),
@@ -149,20 +151,53 @@
 #'   organbar_digit = 2,  # Keep 2 decimal places for bar values
 #'   direction = -1,  # Reverse color gradient (darker = higher expression)
 #'   save_plot = TRUE,  # Save the plot
-#'   plot_path = file.path(getwd(), "tp53_expression_metastatic_prostate.png"),
+#'   plot_path = file.path(tempdir(), "tp53_expression_metastatic_prostate.png"),
 #'   plot_width = 14,
 #'   plot_height = 10,
 #'   plot_dpi = 300,
 #'   save_clean_data = TRUE,  # Save cleaned data
-#'   clean_data_path = file.path(getwd(), "tp53_clean_data.rds")
+#'   clean_data_path = file.path(tempdir(), "tp53_clean_data.rds")
 #' )
 #' 
 #' # Print the plot
 #' print(tp53_plot$plot)
+#' 
+#' # 4.Plot mouse digestive system
+#' # Load mouse example data (included in the package)
+#' mouse_data_path <- system.file("extdata", "exampledata.Rdata", package = "OrgHeatmap")
+#' load(mouse_data_path)
+#' 
+#' # Generate plot for mouse digestive system
+#' mouse_digestive_plot <- OrgHeatmap(
+#' data = example_Data1,
+#' species = "mouse",  # Specify mouse species
+#' system = "digestive",
+#' organbar = TRUE,
+#' palette = "PuBu",
+#' save_plot = TRUE,
+#' plot_path = file.path(tempdir(), "mouse_digestive_plot.png"),
+#' save_clean_data = TRUE
+#' )
+#' print(mouse_digestive_plot$plot)
 #' }
 #'
+#'  # 5. Plot organelles 
+#' organelle_data <- data.frame(
+#'  organ = c("mitochondrion", "nucleus", "endoplasmic_reticulum","cell_membrane"),
+#'  value = c(15.2, 8.7, 6.3,6.8)
+#')
+#'
+#' organelle_plot <- OrgHeatmap(
+#'  data = organelle_data,
+#'  species = "organelle",
+#' title = "Organelle Expression Visualization",
+#' organbar_title = "Expression Level",
+#' save_plot = TRUE,
+#' plot_path = file.path(tempdir(), "organelle_expression_plot.png")
+#')
+#'
 #' @details 
-#' The function uses \code{define_organ_colors()} (an internal helper function) to generate unified color schemes:
+#' The function uses \code{get_component_colors()} (an internal helper function) to generate unified color schemes:
 #' 1. If `organbar_low` and `organbar_high` are specified by the user, they will be used directly (highest priority);
 #' 2. If not, colors are generated from the `palette` (RColorBrewer) with optional reversal (`reverse_palette`);
 #' 3. Custom middle color (`color_mid`) is supported for 3-color gradients (applied to both heatmap and bar chart).
@@ -172,8 +207,8 @@
 #' - For \code{organ_name_mapping}: Accepts a named vector, data frame, or CSV path. 
 #'   Internal helper `create_organ_mapping()` standardizes names (lowercase, underscores for spaces).
 #' - For \code{organ_system_map}: Custom tables (data frame/CSV) are processed to align with 
-#'   built-in `organ_systems` format via `create_organ_mapping()`.
-#' 
+#'   built-in `human_organ_systems` (for humans), `mouse_organ_systems` (for mice), or `organelle_systems` (for organelles) 
+#'   format via `create_organ_mapping()`.
 #' 
 #' @importFrom dplyr rename select filter mutate group_by summarise left_join distinct
 #' @importFrom ggplot2 ggplot aes theme_void ggtitle theme element_text scale_fill_gradient2
@@ -191,48 +226,203 @@
 #' @importFrom utils read.delim
 #' @importFrom stats setNames
 #' @importFrom utils read.csv
+#' @importFrom sf st_as_sf st_combine st_cast st_sf st_coordinates
+#' @importFrom stringdist stringdist
+#' @importFrom viridis viridis
 #' @export
-   OrgHeatmap <- function(data,
-                          system = NULL,
-                          valid_organs = NULL,
-                          sort_by_value = TRUE,
-                          title = NULL,
-                          showall = FALSE,
-                          outline = TRUE,
-                          palette = "YlOrRd",         # Palette name (RColorBrewer)
-                          color_high = NULL,          # Custom color for heatmap maximum(overrides palette)                        
-                          color_low = NULL,           # Custom color for heatmap minimum (overrides palette)
-                          color_mid = NULL,           # Custom color for heatmap middle (for 3-color gradients)
-                          reverse_palette = FALSE,    # Whether to reverse the color order of `palette` (default: FALSE)
-                          fillcolor_outline = "#F5D5B8",
-                          fillcolor_organ = "plasma",
-                          fillcolor_other = "#D3D3D3",
-                          organbar = TRUE,
-                          organbar_title = NULL,
-                          organbar_digit = 4,
-                          organbar_color = NULL,
-                          organbar_low = NULL,
-                          organbar_high = NULL,
-                          direction = 1,
-                          save_clean_data = FALSE,
-                          save_plot = FALSE,
-                          clean_data_path = file.path(getwd(), "clean_data.rds"),  
-                          plot_path = file.path(getwd(), "organ_plot.png"),        
-                          plot_width = 10,
-                          plot_height = 8,
-                          plot_dpi = 300,
-                          plot_device = "png",
-                          organ_system_map = organ_systems,
-                          organ_name_mapping = NULL,
-                          aggregate_method = "mean",
-                          organ_col = "organ",
-                          value_col = "value"
+OrgHeatmap <- function(data,
+                       species = c("human", "mouse", "organelle"),
+                       system = NULL,
+                       valid_organs = NULL,
+                       sort_by_value = TRUE,
+                       title = NULL,
+                       showall = FALSE,
+                       outline = TRUE,
+                       palette = "YlOrRd",         # Palette name (RColorBrewer)
+                       color_high = NULL,           # Custom color for heatmap maximum(overrides palette)                        
+                       color_low = NULL,           # Custom color for heatmap minimum (overrides palette)
+                       color_mid = NULL,            # Custom color for heatmap middle (for 3-color gradients)
+                       reverse_palette = FALSE,    # Whether to reverse the color order of `palette` (default: FALSE)
+                       fillcolor_outline = NULL, 
+                       fillcolor_organ = "plasma",
+                       fillcolor_other = "#D3D3D3",
+                       organbar = TRUE,
+                       organbar_title = NULL,
+                       organbar_digit = 4,
+                       organbar_color = NULL,
+                       organbar_low = NULL,
+                       organbar_high = NULL,
+                       direction = 1,
+                       save_clean_data = FALSE,
+                       save_plot = FALSE,
+                       clean_data_path = NULL,  
+                       plot_path = NULL,       
+                       plot_width = 10,
+                       plot_height = 8,
+                       plot_dpi = 300,
+                       plot_device = "png",
+                       organ_system_map = NULL,
+                       organ_name_mapping = NULL,
+                       aggregate_method = "mean",
+                       organ_col = "organ",
+                       value_col = "value"
 ) {  
   
-  .dummy <- ggplot2::GeomPolygon
+  # Check all dependency packages (provide clear installation prompts if missing)
+  check_dependency <- function(pkg) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      stop(paste0("Package '", pkg, "' is required. Install with: install.packages('", pkg, "')"))
+    }
+  }
   
-  if (nrow(data) == 0) {
-    stop("Input data cannot be empty (nrow(data) == 0).")
+  # Core dependency package list (covers all packages used in the function)
+  deps <- c(
+    "sf", "dplyr", "stringdist", "ggpolypath", "patchwork", 
+    "viridis", "data.table", "stringr", "RColorBrewer", 
+    "ggplot2", "stats", "purrr", "grDevices"
+  )
+  invisible(lapply(deps, check_dependency))
+  
+  close_body_contour <- function(contour_data) {
+    # 1. Filter outliers (remove coordinates outside reasonable range to avoid line jumps)
+    contour_clean <- contour_data %>%
+      dplyr::group_by(id) %>%
+      dplyr::mutate(
+        x_mean = mean(x, na.rm = TRUE),
+        x_sd = sd(x, na.rm = TRUE),
+        y_mean = mean(y, na.rm = TRUE),
+        y_sd = sd(y, na.rm = TRUE)
+      ) %>%
+      # Keep points within mean ± 3 standard deviations (filter extreme outliers)
+      dplyr::filter(
+        x >= x_mean - 3*x_sd, x <= x_mean + 3*x_sd,
+        y >= y_mean - 3*y_sd, y <= y_mean + 3*y_sd
+      ) %>%
+      dplyr::select(-x_mean, -x_sd, -y_mean, -y_sd) %>%
+      dplyr::ungroup()
+    
+    # 2. Group by id and process point sorting and contour closing for each segment
+    contour_processed <- contour_clean %>%
+      dplyr::group_by(id) %>%
+      dplyr::group_modify(function(sub, key) {
+        # Skip segments with too few points (cannot form a polygon)
+        if (nrow(sub) < 3) {
+          warning(paste0("Mouse contour segment [id=", sub$id[1], "] has fewer than 3 points, skipped"))
+          return(NULL)
+        }
+        
+        # Sort points (rearrange clockwise to fix line crossing)
+        coords_sf <- sub %>%
+          sf::st_as_sf(coords = c("x", "y")) %>%  # Convert to sf spatial object
+          sf::st_combine() %>%                   # Combine points into a geometry collection
+          sf::st_cast("POLYGON") %>%             # Convert to polygon (automatically sorts points)
+          sf::st_sf()                           # Convert to sf data frame
+        
+        # Extract sorted x/y coordinates
+        sorted_coords <- sf::st_coordinates(coords_sf)[, 1:2] %>%
+          as.data.frame() %>%
+          dplyr::rename(x = X, y = Y) %>%
+          dplyr::mutate(
+            id = sub$id[1], # Retain segment id
+            V1 = 1:nrow(.)   # Regenerate index (avoid original index chaos)
+          )
+        
+        # 3. Close the polygon (ensure first and last points are the same)
+        if (sorted_coords$x[1] != sorted_coords$x[nrow(sorted_coords)] ||
+            sorted_coords$y[1] != sorted_coords$y[nrow(sorted_coords)]) {
+          sorted_coords <- dplyr::bind_rows(sorted_coords, sorted_coords[1, ])
+        }
+        
+        return(sorted_coords)
+      }) %>%
+      dplyr::ungroup()
+    
+    # Check if processed data is empty
+    if (nrow(contour_processed) == 0) {
+      stop("Mouse contour data is empty after processing, please check the validity of the original coordinate data")
+    }
+    
+    return(contour_processed)
+  }
+  
+  # Validate and lock the species parameter (prevent invalid inputs)
+  species <- match.arg(species)
+  
+  if (is.null(fillcolor_outline)) {
+    fillcolor_outline <- if(species == "organelle") "#F0F8FF" else "#F5D5B8"
+  }
+  
+  # Define core data list by species (human + mouse + organelle)
+  core_data_list <- list(
+    human = c("human_bodycontour", "human_organ_coord", "human_organ_systems"),
+    mouse = c("mouse_bodycontour", "mouse_organ_coord", "mouse_organ_systems"),
+    organelle = c("organelle_bodycontour", "organelle_organ_coord")
+  )
+  
+  # Get core data to check for the current species
+  required_data <- core_data_list[[species]]
+  
+  # Check if core data exists (prioritize package namespace, then global environment)
+  missing_data <- sapply(required_data, function(data_name) {
+    !exists(data_name, envir = .GlobalEnv)
+  })
+  
+  # Terminate with error if any data is missing (unified error message format)
+  if (any(missing_data)) {
+    stop(paste0(
+      "Missing required ", species, " data: ", 
+      paste(names(missing_data)[missing_data], collapse = ", "), "\n",
+      "Ensure data is loaded to the global environment (e.g., via load('data_path.Rdata')).")
+    )
+  }
+  
+  current_default_system <- NULL
+  
+  # Load species-specific data
+  if (species == "human") {
+    current_bodycontour <- human_bodycontour    # Human body outline coordinates
+    current_organ_coord <- human_organ_coord    # Human organ coordinates (list)
+    current_default_system <- human_organ_systems     # Default human organ-system mapping
+  } else if (species == "mouse") {
+    # Load raw mouse contour data
+    current_bodycontour_raw <- mouse_bodycontour
+    # Process contour: sort points + close + filter outliers
+    current_bodycontour <- close_body_contour(current_bodycontour_raw)
+    # Load mouse organ data
+    current_organ_coord <- mouse_organ_coord    # Mouse organ coordinates (list)
+    current_default_system <- mouse_organ_systems  # Default mouse organ-system mapping
+  } else { # species == "organelle"
+    current_bodycontour <- organelle_bodycontour    # Cell outline coordinates
+    current_organ_coord <- organelle_organ_coord    # Organelle coordinates (list)
+  }
+  
+  # Set default organ_system_map if user doesn't provide one
+  if (is.null(organ_system_map)) {
+    if (species == "organelle") {
+      organ_system_map <- NULL 
+    } else {
+      organ_system_map <- current_default_system
+    }
+  }
+  
+  # Validate body/cell contour data (must contain 'x' and 'y' columns)
+  if (!all(c("x", "y") %in% colnames(current_bodycontour))) {
+    stop(paste0(
+      "Invalid ", species, " body/cell contour data: missing 'x' or 'y' column.\n",
+      "Ensure current_bodycontour has columns 'x' (x-coordinate) and 'y' (y-coordinate)."
+    ))
+  }
+  
+  # Validate organ/organelle coordinate data (each must contain 'x', 'y', and 'id' columns; 'id' for grouping in plotting)
+  organ_coord_valid <- sapply(current_organ_coord, function(org_df) {
+    all(c("x", "y", "id") %in% colnames(org_df))
+  })
+  if (!all(organ_coord_valid)) {
+    invalid_organs <- paste(names(organ_coord_valid)[!organ_coord_valid], collapse = ", ")
+    stop(paste0(
+      "Invalid ", species, " organ/organelle coordinate data: missing 'x', 'y', or 'id' column in:\n",
+      invalid_organs, "\nEnsure each organ data frame in current_organ_coord has these 3 columns."
+    ))
   }
   
   # Helper function: standardize organ name format (space to underscore, lowercase)
@@ -240,9 +430,13 @@
     tolower(gsub("\\s+", "_", name))
   }
   
-  
   # Preprocess organ system mapping (standardize names)
   preprocess_organ_system_map <- function(map) {
+    
+    if (is.null(map)) {
+      return(NULL)
+    }
+    
     # If a CSV file path is provided, automatically read it as a data frame
     if (is.character(map) && file.exists(map)) {
       # Read CSV (comma-separated by default; adjust sep parameter if needed)
@@ -254,7 +448,7 @@
     }
     
     map %>%
-      mutate(
+      dplyr::mutate(
         organ = standardize_organ_name(organ),
         system = tolower(system)
       )
@@ -268,7 +462,15 @@
   
   # Apply name standardization
   organ_system_map <- preprocess_organ_system_map(organ_system_map)
-  human_organ_coord <- standardize_coord_names(human_organ_coord)
+  current_organ_coord <- standardize_coord_names(current_organ_coord)
+  
+  current_organ_coord <- lapply(current_organ_coord, function(org_df) {
+    if (!is.numeric(org_df$x) || !is.numeric(org_df$y)) {
+      stop(paste0("Organ '", names(current_organ_coord)[which(sapply(current_organ_coord, identical, org_df))], 
+                  "' coordinate 'x' or 'y' is not numeric. Ensure x/y are numeric."))
+    }
+    org_df
+  })
   
   # Validate direction parameter
   if (!direction %in% c(1, -1)) {
@@ -283,12 +485,11 @@
   
   # Check if user-specified columns exist
   if (!organ_col %in% colnames(data)) {
-    stop(paste("Specified organ column '", organ_col, "' not found in data"))
+    stop(paste0("Specified organ column '", organ_col, "' not found in data"))
   }
   if (!value_col %in% colnames(data)) {
-    stop(paste("Specified value column '", value_col, "' not found in data"))
+    stop(paste0("Specified value column '", value_col, "' not found in data"))
   }
-  
   
   create_organ_mapping <- function(
     mapping_table,
@@ -350,7 +551,7 @@
       }
       mapping_df <- mapping_df[!is.na(mapping_df[[original_col]]) & !is.na(mapping_df[[standard_col]]), ]
       return(stats::setNames(
-        sapply(mapping_df[[standard_col]], standardize_organ_name),  # 用 standardize_organ_name 而非 standardize
+        sapply(mapping_df[[standard_col]], standardize_organ_name),  # Standardize target names to match organ coordinate naming rules
         mapping_df[[original_col]]
       ))
     } else {
@@ -365,22 +566,19 @@
     }
   }
   
-  
-  
-  # Data preprocessing function (standardization, mapping, aggregation)
-  process_organ_data <- function(data, organ_col, value_col, organ_name_mapping, aggregate_method) {
-  # 1. Input validation : Prevent invalid input from entering the pipeline
+  process_organ_data <- function(data, organ_col, value_col, organ_name_mapping, aggregate_method,current_organ_coord) {
+    # 1. Input validation: Prevent invalid input from entering the pipeline
     if (!is.data.frame(data)) {
       stop("'data' must be a data frame")
     }
     if (nrow(data) == 0) {
-      stop("'data' cannot be empty (nrow(data) == 0)")
+      stop("Input data cannot be empty")
     }
     if (!organ_col %in% colnames(data)) {
-      stop("organ_col '", organ_col, "' not found in data")
+      stop(paste0("organ_col '", organ_col, "' not found in data"))
     }
     if (!value_col %in% colnames(data)) {
-      stop("value_col '", value_col, "' not found in data")
+      stop(paste0("value_col '", value_col, "' not found in data"))
     }
     if (!aggregate_method %in% c("count", "sum", "mean")) {
       stop("aggregate_method must be one of 'count', 'sum', 'mean'")
@@ -389,36 +587,36 @@
     fuzzy_matches <- character(0)
     
     # 2. Data processing pipeline 
-    data %>%
+    result <- data %>%
       # Rename columns and keep required columns
-      rename(
+      dplyr::rename(
         temp_organ = all_of(organ_col),
         temp_value = all_of(value_col)
       ) %>%
-      select(temp_organ, temp_value) %>%  
+      dplyr::select(temp_organ, temp_value) %>%  
       
-    # Ensure conditional branches always return data frame (avoid NULL)
-    {
-      # Only perform mapping when organ_name_mapping is a character vector, otherwise return original data
-      if (!is.null(organ_name_mapping) && is.character(organ_name_mapping)) {
-        mutate(., 
-               temp_organ = ifelse(
-                 temp_organ %in% names(organ_name_mapping),  # Simplified: can directly reference column names in pipeline
-                 organ_name_mapping[temp_organ], 
-                 temp_organ
-               )
-        )
-      } else {
-        .  # Return current data frame when condition not met, instead of NULL
-      }
-    } %>%
+      # Ensure conditional branches always return data frame (avoid NULL)
+      {
+        # Only perform mapping when organ_name_mapping is a character vector, otherwise return original data
+        if (!is.null(organ_name_mapping) && is.character(organ_name_mapping)) {
+          dplyr::mutate(., 
+                        temp_organ = ifelse(
+                          temp_organ %in% names(organ_name_mapping),  # Simplified: can directly reference column names in pipeline
+                          organ_name_mapping[temp_organ], 
+                          temp_organ
+                        )
+          )
+        } else {
+          .  # Return current data frame when condition not met, instead of NULL
+        }
+      } %>%
       
       # Standardize organ names
-      mutate(temp_organ = standardize_organ_name(temp_organ)) %>%
-
+      dplyr::mutate(temp_organ = standardize_organ_name(temp_organ)) %>%
+      
       # Fuzzy matching 
-      mutate(temp_organ = purrr::map_chr(temp_organ, function(x) {
-        all_organs <- unique(organ_system_map$organ)
+      dplyr::mutate(temp_organ = purrr::map_chr(temp_organ, function(x) {
+        all_organs <- names(current_organ_coord)  
         if (x %in% all_organs) return(x)
         
         # Check if stringdist is available
@@ -438,14 +636,15 @@
         min_dist <- min(distances)
         if (min_dist <= 2) {
           matched <- all_organs[which.min(distances)]
+          fuzzy_matches <<- c(fuzzy_matches, paste0("'", x, "' -> '", matched, "'"))
           message(paste0("Fuzzy matched: '", x, "' -> '", matched, "'"))
           return(matched)
         } else {
           return(x)  # Retain original value when no match
         }
       })) %>%
-        
-        # Output all fuzzy match results at once after the fuzzy matching loop (single message)
+      
+      # Output all fuzzy match results at once after the fuzzy matching loop (single message)
       {
         if (length(fuzzy_matches) > 0) {
           message(paste(fuzzy_matches, collapse = "\n"))  # Separate multiple matches with newlines
@@ -454,9 +653,9 @@
       } %>%
       
       # Filter invalid values (moved after fuzzy matching to avoid premature filtering)
-      filter(!is.na(temp_organ), !is.na(temp_value)) %>%
-      mutate(temp_value = as.numeric(temp_value)) %>%
-      filter(!is.na(temp_value)) %>%  # Filter values that failed numeric conversion
+      dplyr::filter(!is.na(temp_organ), !is.na(temp_value)) %>%
+      dplyr::mutate(temp_value = as.numeric(temp_value)) %>%
+      dplyr::filter(!is.na(temp_value)) %>%  # Filter values that failed numeric conversion
       
       # Aggregate data (ensure at least one row remains after grouping)
       {
@@ -464,11 +663,11 @@
           warning("No valid data remaining after filtering. Returning empty data frame.")
           .  # Return empty data frame instead of breaking
         } else {
-          group_by(., temp_organ) %>%
-            summarise(
+          dplyr::group_by(., temp_organ) %>%
+            dplyr::summarise(
               temp_value = switch(
                 aggregate_method,
-                "count" = n(),
+                "count" = dplyr::n(),
                 "sum" = sum(temp_value, na.rm = TRUE),
                 "mean" = mean(temp_value, na.rm = TRUE)
               ),
@@ -478,71 +677,25 @@
       } %>%
       
       # Restore user-specified column names
-      rename(
+      dplyr::rename(
         !!organ_col := temp_organ,
         !!value_col := temp_value
       )
+    
+    all_processed_organs <- unique(result[[organ_col]])
+    valid_organs <- names(current_organ_coord)
+    
+    missing_organs <- setdiff(all_processed_organs, valid_organs)
+    
+    clean_data <- result[result[[organ_col]] %in% valid_organs, ]
+    
+    if (nrow(clean_data) == 0) {
+      warning("No organs with coordinate data found after filtering.")
+    }
+    
+    return(list(clean_data = clean_data, missing_organs = missing_organs))
   }
-
   
-  define_organ_colors <- function(
-    palette = "YlOrRd",
-    low = NULL,
-    high = NULL,
-    mid = NULL,
-    fillcolor_other = "#E0E0E0",
-    fillcolor_outline = "#F5D5B8",
-    outline_color = "black",
-    reverse = FALSE
-  ) {
-    # 1. Validate RColorBrewer palette validity
-    if (!is.null(palette) && !palette %in% rownames(RColorBrewer::brewer.pal.info)) {
-      valid_palettes <- paste(rownames(RColorBrewer::brewer.pal.info), collapse = ", ")
-      stop(paste0(
-        "Invalid 'palette' name: '", palette, "'.\n",
-        "Valid RColorBrewer palettes: ", valid_palettes
-      ))
-    }
-    
-    # 2. Validate color format (avoid invalid colors)
-    is_valid_color <- function(color) {
-      if (is.null(color)) return(TRUE)
-      tryCatch({
-        grDevices::col2rgb(color)
-        TRUE
-      }, error = function(e) FALSE)
-    }
-    color_params <- list(low=low, high=high, mid=mid, fillcolor_other=fillcolor_other, fillcolor_outline=fillcolor_outline, outline_color=outline_color)
-    invalid_colors <- Filter(function(x) !is_valid_color(color_params[[x]]), names(color_params))
-    if (length(invalid_colors) > 0) {
-      stop(paste0(
-        "Invalid color format for: ", paste(invalid_colors, collapse = ", "), "\n",
-        "Use hex codes (e.g., #FF0000) or named colors (e.g., 'red')."
-      ))
-    }
-    
-    # 3. Generate gradient colors (custom colors first, then palette)
-    if (!is.null(low) && !is.null(high)) {
-      fillcolor_low <- low
-      fillcolor_high <- high
-    } else {
-      brew_colors <- RColorBrewer::brewer.pal(n = 3, name = palette)
-      if (reverse) brew_colors <- rev(brew_colors)
-      fillcolor_low <- if (is.null(low)) brew_colors[1] else low
-      fillcolor_high <- if (is.null(high)) brew_colors[3] else high
-      mid <- if (is.null(mid)) brew_colors[2] else mid
-    }
-    
-    # 4. Return standardized color list
-    list(
-      fillcolor_low = fillcolor_low,
-      fillcolor_high = fillcolor_high,
-      fillcolor_mid = mid,
-      fillcolor_other = fillcolor_other,
-      fillcolor_outline = fillcolor_outline,
-      outline_color = outline_color
-    )
-  }
   
   # Get organ coordinates function
   get_organ_coordinates <- function(organs) {
@@ -550,9 +703,16 @@
     missing_organs <- character()
     standardized_organs <- standardize_organ_name(organs)
     
-    for (org in unique(standardized_organs)) {
-      if (org %in% names(human_organ_coord)) {
-        df <- human_organ_coord[[org]]
+    # For organelles, get all available organelles, not just the ones in user data
+    if (species == "organelle") {
+      target_organs <- unique(c(standardized_organs, names(current_organ_coord)))
+    } else {
+      target_organs <- unique(standardized_organs)
+    }
+    
+    for (org in target_organs) {
+      if (org %in% names(current_organ_coord)) {  
+        df <- current_organ_coord[[org]]  
         df$organ <- org
         valid_organs[[org]] <- df
       } else {
@@ -560,9 +720,9 @@
       }
     }
     
-    if (length(missing_organs) > 0) {
+    if (length(missing_organs) > 0 && species != "organelle") {
       warning(paste(
-        "The following organs have no coordinate data:",
+        "The following organs/organelles have no coordinate data:",
         paste(unique(missing_organs), collapse = ", ")
       ))
     }
@@ -570,13 +730,14 @@
     dplyr::bind_rows(valid_organs)
   }
   
+  
   # Create bar chart data function
   create_organ_bar_data <- function(system_organs_data, organ_col, value_col) {
     system_organs_data %>% 
-      distinct(!!sym(organ_col), !!sym(value_col)) %>% 
-      mutate(
-        organ_display = str_replace_all(!!sym(organ_col), "_", " ") %>% 
-          str_to_title(),
+      dplyr::distinct(!!sym(organ_col), !!sym(value_col)) %>% 
+      dplyr::mutate(
+        organ_display = stringr::str_replace_all(!!sym(organ_col), "_", " ") %>% 
+          stringr::str_to_title(),
         organ_display = ifelse(
           duplicated(organ_display) | duplicated(organ_display, fromLast = TRUE),
           paste0(organ_display, " (", !!sym(organ_col), ")"),
@@ -593,13 +754,13 @@
   save_results <- function(plot_obj, clean_data, 
                            save_plot, plot_path, plot_width, plot_height, plot_dpi, plot_device,
                            save_clean_data, clean_data_path) {
-
+    
     valid_devices <- c("png", "pdf", "svg", "jpeg", "tiff", "bmp", "eps")
     if (!plot_device %in% valid_devices) {
       stop("Invalid plot_device '", plot_device, "'. Valid options: ", paste(valid_devices, collapse = ", "))
     }
     
-    #Save plot
+    # Save plot
     if (save_plot && is.null(plot_obj)) {
       warning("Cannot save plot: no valid plot generated.")
     } else if (save_plot) {
@@ -631,9 +792,12 @@
   # Main data processing workflow
   if (!is.null(data)) {
     if (!is.data.frame(data)) {
-      stop("data must be a data frame.")
+      stop("data must be a data frame")
     }
-      # Process organ_name_mapping (supports data frames/file paths)
+    if (nrow(data) == 0) {
+      stop("Input data cannot be empty")
+    }
+    # Process organ_name_mapping (supports data frames/file paths)
     if (!is.null(organ_name_mapping)) {
       if (is.data.frame(organ_name_mapping) || is.character(organ_name_mapping)) {
         # Call internal helper function to generate mapping vector
@@ -647,30 +811,54 @@
     }
     
     # Process organ_system_map (supports data frames/file paths)
-    if (!identical(organ_system_map, organ_systems) && (is.data.frame(organ_system_map) || is.character(organ_system_map))) {
+    if (!identical(organ_system_map, current_default_system) && 
+        (is.data.frame(organ_system_map) || is.character(organ_system_map))) {
       organ_system_map <- create_organ_mapping(
         mapping_table = organ_system_map,
         output_type = "system_mapping"
       )
     }
     
-    clean_data <- process_organ_data(
+    processed_result <- process_organ_data(
       data = data,
       organ_col = organ_col,
       value_col = value_col,
       organ_name_mapping = organ_name_mapping,
-      aggregate_method = aggregate_method
+      aggregate_method = aggregate_method,
+      current_organ_coord = current_organ_coord 
     )
     
-    # System filtering
-    if (!is.null(system)) {
+    clean_data <- processed_result$clean_data
+    missing_organs_from_process <- processed_result$missing_organs
+    
+    if (!is.null(system) && species == "organelle") {
+      warning("system parameter is not applicable for organelle mode - ignoring system filter")
+      system <- NULL
+    }
+    
+    # System filtering - DISABLED FOR ORGANELLES
+    if (!is.null(system) && species != "organelle") {
       system <- tolower(system)
       system_organs <- unique(organ_system_map$organ[organ_system_map$system == system])
+      
       if (length(system_organs) == 0) {
-        stop(paste("No organs found for system:", system))
+        stop(paste("No organs/organelles found for system:", system))
       }
-      if (is.null(title)) {
-        title <- paste(str_to_title(system), "System Visualization")
+      
+      missing_in_system <- setdiff(system_organs, names(current_organ_coord))
+      if (length(missing_in_system) > 0) {
+        warning(paste("The following organs in system", system, "have no coordinate data:",
+                      paste(missing_in_system, collapse = ", ")))
+      }
+      
+      clean_data <- clean_data[clean_data[[organ_col]] %in% system_organs, ]
+      
+      if (nrow(clean_data) == 0) {
+        warning(paste0("No data available for the specified system: ", system))
+      } else {
+        if (is.null(title)) {
+          title <- paste(stringr::str_to_title(system), "System Visualization")
+        }
       }
     }
     
@@ -680,12 +868,12 @@
       invalid_organs <- unique(clean_data[[organ_col]][!clean_data[[organ_col]] %in% valid_organs_std])
       
       if (length(invalid_organs) > 0) {
-        warning(paste("Found", length(invalid_organs), "invalid organs:",
+        warning(paste("Found", length(invalid_organs), "invalid organs/organelles:",
                       paste(invalid_organs, collapse = ", ")))
         clean_data <- clean_data[clean_data[[organ_col]] %in% valid_organs_std, ]
         
         if (nrow(clean_data) == 0) {
-          stop("No valid organs remaining after filtering.")
+          stop("No valid organs/organelles remaining after filtering.")
         }
       }
     }
@@ -695,97 +883,186 @@
       clean_data <- clean_data[order(clean_data[[value_col]], decreasing = TRUE), ]
     }
     
-  
-    
-    data<-clean_data
+    data <- clean_data
   }
-    
   
   if (is.null(data)) {
-    stop("data is null.")
+    stop("Input data cannot be empty")
   }
   
- # Use palette-generated colors if organbar_low/high are not specified by user
- color_config <- define_organ_colors(
-   palette = palette,
-   low = if (is.null(organbar_low)) color_low else organbar_low,  # Prioritize user-specified bar colors
-   high = if (is.null(organbar_high)) color_high else organbar_high,
-   mid = color_mid,
-   fillcolor_other = fillcolor_other,
-   fillcolor_outline = fillcolor_outline,
-   outline_color = "black",  # Can be changed to user-defined parameter
-   reverse = reverse_palette
-)
-
- # Update color parameters (override original parameters with palette-generated config)
- fillcolor_outline <- color_config$fillcolor_outline
- fillcolor_other <- color_config$fillcolor_other
- organbar_low <- color_config$fillcolor_low
- organbar_high <- color_config$fillcolor_high
- organbar_mid <- color_config$fillcolor_mid  #middle color for 3-color gradients
- 
- if (!is.null(fillcolor_outline)) {
-   # Check if the color format is valid using regular expressions to match common color formats
-   if (!grepl("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$", fillcolor_outline) &&
-       !fillcolor_outline %in% grDevices::colors()) {
-     stop("Invalid color format for 'fillcolor_outline'. ",
-          "Please provide a valid color name (e.g., 'red') or a hex code (e.g., '#FF0000').")
-   }
- }
-
+  get_component_colors <- function(
+    component_low, component_high, component_mid,
+    fallback_low, fallback_high, fallback_mid,
+    palette, reverse_palette, fillcolor_organ = "plasma", direction = 1) {
+    
+    # Step 1: Use component-specific colors if provided
+    low <- component_low
+    high <- component_high
+    mid <- component_mid
+    
+    # Step 2: Fall back to other component colors if primary colors are not set
+    if (is.null(low)) low <- fallback_low
+    if (is.null(high)) high <- fallback_high
+    if (is.null(mid)) mid <- fallback_mid
+    
+    # Step 3: Generate from palette if colors are still missing
+    if (is.null(low) || is.null(high)) {
+      
+      # Validate palette exists
+      if (!palette %in% rownames(RColorBrewer::brewer.pal.info)) {
+        stop("Invalid palette: ", palette)
+      }
+      
+      if (fillcolor_organ %in% c('viridis', 'magma', 'inferno', 'plasma', 'cividis')) {
+        # Use viridis color scales
+        if (!requireNamespace("viridis", quietly = TRUE)) {
+          stop("Package 'viridis' is required for viridis color scales")
+        }
+        viridis_cols <- viridis::viridis(3, option = fillcolor_organ, direction = direction)
+        low <- if (is.null(low)) viridis_cols[1] else low
+        high <- if (is.null(high)) viridis_cols[3] else high
+        mid <- if (is.null(mid)) viridis_cols[2] else mid
+      } else {
+        # Use RColorBrewer palette
+        brew_colors <- RColorBrewer::brewer.pal(n = 3, name = palette)
+        if (reverse_palette) brew_colors <- rev(brew_colors)
+        low <- if (is.null(low)) brew_colors[1] else low
+        high <- if (is.null(high)) brew_colors[3] else high
+        mid <- if (is.null(mid)) brew_colors[2] else mid
+      }
+    }
+    
+    # Step 4: Validate color formats
+    validate_color <- function(color) {
+      if (is.null(color)) return(TRUE)
+      tryCatch({
+        grDevices::col2rgb(color)
+        TRUE
+      }, error = function(e) FALSE)
+    }
+    
+    if (!validate_color(low) || !validate_color(high) || (!is.null(mid) && !validate_color(mid))) {
+      stop("Invalid color format! Use hex codes (e.g., '#FF0000') or named colors (e.g., 'red').")
+    }
+    
+    return(list(low = low, high = high, mid = mid))
+  }
+  
+  # Get colors for heatmap and bar chart separately
+  heatmap_colors <- get_component_colors(
+    component_low = color_low,
+    component_high = color_high,
+    component_mid = color_mid,
+    # Heatmap falls back to bar chart colors if not set
+    fallback_low = organbar_low,    
+    fallback_high = organbar_high,  
+    fallback_mid = NULL,
+    fillcolor_organ = fillcolor_organ,
+    direction = direction,
+    palette = palette,
+    reverse_palette = reverse_palette
+  )
+  
+  bar_colors <- get_component_colors(
+    component_low = organbar_low,
+    component_high = organbar_high,
+    component_mid = NULL,
+    # Bar chart falls back to heatmap colors if not set
+    fallback_low = color_low,       
+    fallback_high = color_high,     
+    fallback_mid = color_mid,
+    fillcolor_organ = fillcolor_organ,
+    direction = direction,
+    palette = palette,
+    reverse_palette = reverse_palette
+  )
+  
+  # 3. Update other color parameters
+  # Keep parameter value
+  fillcolor_outline <- fillcolor_outline  
+  fillcolor_other <- fillcolor_other      
+  
+  
+  if (!is.null(fillcolor_outline)) {
+    # Check if the color format is valid using regular expressions to match common color formats
+    if (!grepl("^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$", fillcolor_outline) &&
+        !fillcolor_outline %in% grDevices::colors()) {
+      stop("Invalid color format for 'fillcolor_outline'. ",
+           "Please provide a valid color name (e.g., 'red') or a hex code (e.g., '#FF0000', '#FFF').")
+    }
+  }
+  
   # Main plotting workflow
-  p <- ggplot(data = human_bodycontour, aes(x = x, y = y)) +
-    theme_void()
+  p <- ggplot2::ggplot(data = current_bodycontour, ggplot2::aes(x = x, y = y)) +
+    ggplot2::theme_void()
   
   if (outline) {
-    p <- p + ggpolypath::geom_polypath(data = human_bodycontour,
-                           aes(x = x, y = y),
-                           color = color_config$outline_color,  
-                           alpha = .5,
-                           linewidth = 0.3,
-                           fill = fillcolor_outline)
+    p <- p + ggpolypath::geom_polypath(
+      data = current_bodycontour,
+      ggplot2::aes(group = id),  
+      color = "black",   
+      alpha = .5,
+      linewidth = 0.3,
+      fill = fillcolor_outline
+    )
   }
   
   if (showall == TRUE) {
-    organcoord <- human_organ_coord
+    organcoord <- current_organ_coord
     organcoord_all <- data.table::rbindlist(organcoord, fill = TRUE) %>% as.data.frame()
     
-    p <- p + ggpolypath::geom_polypath(mapping = aes(group = id),
-                           linewidth = 0.2,
-                           fill = "#EFEFEF",
-                           alpha = .2,
-                           color = "grey",
-                           data = organcoord_all)
+    p <- p + ggpolypath::geom_polypath(
+      mapping = ggplot2::aes(group = id),
+      linewidth = 0.2,
+      fill = "#EFEFEF",
+      alpha = .2,
+      color = "grey",
+      data = organcoord_all
+    )
   }
   
   # Prepare organ data
   user_organs <- unique(data[[organ_col]])
-  user_organs_data <- get_organ_coordinates(user_organs)
+  
+  # For organelles, get all available organelles
+  if (species == "organelle") {
+    user_organs_data <- get_organ_coordinates(names(current_organ_coord))
+  } else {
+    user_organs_data <- get_organ_coordinates(user_organs)
+  }
   
   # Merge user data
   user_organs_data <- dplyr::left_join(
     user_organs_data,
-    data %>% rename(organ = all_of(organ_col), value = all_of(value_col)),
+    data %>% dplyr::rename(organ = all_of(organ_col), value = all_of(value_col)),
     by = "organ"
   )
   
   # Mark in-system organs
-  if (!is.null(system)) {
-    system_organs <- unique(organ_system_map$organ[organ_system_map$system == system])
-    user_organs_data$in_system <- user_organs_data$organ %in% system_organs
+  if (species == "organelle") {
+    # For organelles, all are considered "in system" and we color based on whether they have data
+    user_organs_data$has_data <- !is.na(user_organs_data$value)
+    system_organs_data <- user_organs_data %>% dplyr::filter(has_data)
+    other_organs_data <- user_organs_data %>% dplyr::filter(!has_data)
   } else {
-    user_organs_data$in_system <- TRUE
+    # Original logic for human and mouse
+    if (!is.null(system)) {
+      system_organs <- unique(organ_system_map$organ[organ_system_map$system == system])
+      user_organs_data$in_system <- user_organs_data$organ %in% system_organs
+    } else {
+      user_organs_data$in_system <- TRUE
+    }
+    
+    # Separate in-system and out-of-system organs
+    system_organs_data <- user_organs_data %>% dplyr::filter(in_system)
+    other_organs_data <- user_organs_data %>% dplyr::filter(!in_system)
   }
-  
-  # Separate in-system and out-of-system organs
-  system_organs_data <- user_organs_data %>% dplyr::filter(in_system)
-  other_organs_data <- user_organs_data %>% dplyr::filter(!in_system)
   
   # Plot out-of-system organs
   if (nrow(other_organs_data) > 0) {
     p <- p + ggpolypath::geom_polypath(
       data = other_organs_data,
-      aes(group = id),
+      ggplot2::aes(group = id),
       fill = fillcolor_other,
       color = "black",
       alpha = 0.5,
@@ -797,37 +1074,58 @@
   if (nrow(system_organs_data) > 0) {
     p <- p + ggpolypath::geom_polypath(
       data = system_organs_data,
-      aes(group = id, fill = value),
+      ggplot2::aes(group = id, fill = value),
       color = "black",
       alpha = 0.7,
       linewidth = 0.2
     )
     data_range <- range(system_organs_data$value, na.rm = TRUE)
+    
+    # Heatmap color scale: use heatmap_colors
+    if (!is.null(heatmap_colors$mid)) {
+      # 3-color gradient
+      p <- p + ggplot2::scale_fill_gradient2(
+        low = heatmap_colors$low,
+        mid = heatmap_colors$mid,
+        high = heatmap_colors$high,
+        midpoint = mean(data_range),
+        limits = data_range
+      )
+    } else {
+      # 2-color gradient
+      p <- p + ggplot2::scale_fill_gradient(
+        low = heatmap_colors$low,
+        high = heatmap_colors$high,
+        limits = data_range
+      )
+    }
   }
   
   # Add title
   if (is.null(title)) {
-    title <- if (!is.null(system)) {
-      paste(str_to_title(system), "System Visualization")
+    title <- if (species == "organelle") {
+      "Organelle Visualization"
+    } else if (!is.null(system)) {
+      paste(stringr::str_to_title(system), "System Visualization")
     } else {
       "Organ Visualization"
     }
   }
   
-  p <- p + ggtitle(title) +
-    theme(plot.title = element_text(hjust = 0.5,
-                                    vjust = 2,
-                                    size = 16,
-                                    face = "bold",
-                                    color = "#333333",
-                                    margin = margin(b = 10)))
+  p <- p + ggplot2::ggtitle(title) +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5,
+                                                      vjust = 2,
+                                                      size = 16,
+                                                      face = "bold",
+                                                      color = "#333333",
+                                                      margin = ggplot2::margin(b = 10)))
   
   final_plot <- NULL
   
   # Create organ bar chart and combine
   if (organbar && nrow(system_organs_data) > 0) {
     organ_bar <- create_organ_bar_data(
-      system_organs_data %>% rename(!!organ_col := organ, !!value_col := value),
+      system_organs_data %>% dplyr::rename(!!organ_col := organ, !!value_col := value),
       organ_col = organ_col,
       value_col = value_col
     )
@@ -842,89 +1140,86 @@
     # Create bar chart
     p_organbar <- if (!is.null(organbar_color)) {
       # Scenario 1: Solid-color bars
-      ggplot(organ_bar) +
-        aes(x = factor(1), y = order) +
-        geom_tile(width = 0.5, fill = organbar_color) +
-        geom_text(aes(label = value_label), size = 5, color = "black") +
-        scale_y_discrete(position = "right") +
-        theme_void() +
-        theme(axis.text.y = element_text(size = 15, hjust = 1, margin = margin(r = 10)))
-    } else if (!is.null(organbar_low) && !is.null(organbar_high)) {
-      # Scenario 2: 2-color / 3-color gradient bars
-      base_plot <- ggplot(organ_bar) +
-        aes(x = factor(1), y = order, fill = !!sym(value_col)) +
-        geom_tile(width = 0.5) +
-        geom_text(aes(label = value_label), size = 5, color = "black") +
-        scale_y_discrete(position = "right") +
-        guides(fill = "none") +
-        theme_void() +
-        theme(axis.text.y = element_text(size = 15, hjust = 1, margin = margin(r = 10)))
+      ggplot2::ggplot(organ_bar) +
+        ggplot2::aes(x = factor(1), y = order) +
+        ggplot2::geom_tile(width = 0.5, fill = organbar_color) +
+        ggplot2::geom_text(ggplot2::aes(label = value_label), size = 5, color = "black") +
+        ggplot2::scale_y_discrete(position = "right") +
+        ggplot2::guides(fill = "none") +
+        ggplot2::theme_void() +
+        ggplot2::theme(axis.text.y = ggplot2::element_text(size = 15, hjust = 1, margin = ggplot2::margin(r = 10)))
+    } else {
+      # Scenario 2: Gradient bars
+      base_plot <- ggplot2::ggplot(organ_bar) +
+        ggplot2::aes(x = factor(1), y = order, fill = !!sym(value_col)) +
+        ggplot2::geom_tile(width = 0.5) +
+        ggplot2::geom_text(ggplot2::aes(label = value_label), size = 5, color = "black") +
+        ggplot2::scale_y_discrete(position = "right") +
+        ggplot2::guides(fill = "none") +
+        ggplot2::theme_void() +
+        ggplot2::theme(axis.text.y = ggplot2::element_text(size = 15, hjust = 1, margin = ggplot2::margin(r = 10)))
       
-      # Key: Use 3-color gradient if mid color exists; otherwise use 2-color gradient
-      if (!is.null(organbar_mid)) {
-        base_plot + scale_fill_gradient2(
-          low = organbar_low,
-          mid = organbar_mid,
-          high = organbar_high,
+      # Use 3-color gradient if mid color exists; otherwise use 2-color gradient
+      if (!is.null(bar_colors$mid)) {
+        base_plot + ggplot2::scale_fill_gradient2(
+          low = bar_colors$low,
+          mid = bar_colors$mid,
+          high = bar_colors$high,
           midpoint = mean(data_range)
         )
       } else {
-        base_plot + scale_fill_gradient(low = organbar_low, high = organbar_high)
+        base_plot + ggplot2::scale_fill_gradient(
+          low = bar_colors$low,
+          high = bar_colors$high
+        )
       }
-    } else {
-      # Scenario 3: Use default palette colors
-      ggplot(organ_bar) +
-        aes(x = factor(1), y = order, fill = !!sym(value_col)) +
-        geom_tile(width = 0.5) +
-        geom_text(aes(label = value_label), size = 5, color = "black") +
-        scale_y_discrete(position = "right") +
-        guides(fill = "none") +
-        theme_void() +
-        theme(axis.text.y = element_text(size = 15, hjust = 1, margin = margin(r = 10)))
     }
     
     # Combine plots
     final_plot <- (p_organbar + p) +
-      patchwork::plot_layout(ncol = 2, widths = c(1, 4))
-    
-    # Unified color scale
-    if (is.null(organbar_low) || is.null(organbar_high)) {
-      if (fillcolor_organ %in% c('viridis', 'magma', 'inferno', 'plasma', 'cividis')) {
-        final_plot <- final_plot &
-          scale_fill_viridis_c(option = fillcolor_organ,
-                               limits = data_range,
-                               direction = direction,
-                               low = organbar_low,  # Use palette-generated low color
-                               high = organbar_high # Use palette-generated high color
-          )
-      } else {
-        final_plot <- final_plot &
-          scale_fill_distiller(palette = fillcolor_organ, 
-                               limits = data_range, 
-                               direction = direction,
-                               low = organbar_low,  
-                               high = organbar_high )
-      }
-    }
-    
-    final_plot <- final_plot +
+      patchwork::plot_layout(ncol = 2, widths = c(1, 4)) +
       patchwork::plot_layout(guides = "collect") &
-      theme(legend.position = "right") &
-      labs(fill = organbar_title)
+      ggplot2::theme(legend.position = "right") &
+      ggplot2::labs(fill = organbar_title)
   } else {
-    if (exists("data_range")) {
-      if (fillcolor_organ %in% c('viridis', 'magma', 'inferno', 'plasma', 'cividis')) {
-        p <- p + scale_fill_viridis_c(option = fillcolor_organ, limits = data_range, direction = direction,low = organbar_low, high = organbar_high)
-      } else {
-        p <- p + scale_fill_distiller(palette = fillcolor_organ, limits = data_range, direction = direction,low = organbar_low, high = organbar_high)
-      }
-      final_plot <- p
-    }
+    final_plot <- p &
+      ggplot2::theme(legend.position = "right") &
+      ggplot2::labs(fill = organbar_title)
+  }
+  
+  # Warning for no valid organs
+  if (nrow(system_organs_data) == 0 && !is.null(system) && species != "organelle") {
+    warning(paste("No valid organs/organelles found for", species, "system:", system, "- cannot generate plot."))
+    final_plot <- NULL
+  } else if (nrow(user_organs_data) == 0) {
+    warning(paste("No valid organs/organelles with coordinate data found for", species, "- cannot generate plot."))
+    final_plot <- NULL
   }
   
   # Print final plot
   if (!is.null(final_plot)) {
     print(final_plot)
+  }
+  
+  
+  if (save_clean_data) {
+    if (is.null(clean_data_path)) {
+      clean_data_path <- file.path(tempdir(), paste0("clean_data_", sample(1:10000, 1), ".rds"))
+    } else {
+      if (!dir.exists(dirname(clean_data_path))) {
+        dir.create(dirname(clean_data_path), recursive = TRUE, showWarnings = FALSE)
+      }
+    }
+  }
+  
+  if (save_plot) {
+    if (is.null(plot_path)) {
+      plot_path <- file.path(tempdir(), paste0("plot_", sample(1:10000, 1), ".png"))
+    } else {
+      if (!dir.exists(dirname(plot_path))) {
+        dir.create(dirname(plot_path), recursive = TRUE, showWarnings = FALSE)
+      }
+    }
   }
   
   # Call internal saving function
@@ -947,15 +1242,15 @@
   invisible(list(
     plot = final_plot,
     clean_data = clean_data,
-    system_used = if (!is.null(system)) system else "all",
-    mapped_organs = user_organs,
-    missing_organs = setdiff(unique(data[[organ_col]]), names(human_organ_coord)),
-    total_value = sum(clean_data[[value_col]])
+    system_used = if (species != "organelle" && !is.null(system)) system else "all",
+    mapped_organs = unique(clean_data[[organ_col]]),
+    missing_organs = missing_organs_from_process, 
+    total_value = sum(clean_data[[value_col]], na.rm = TRUE) 
   ))
 }
 
-# Built-in organ system mapping data frame
-organ_systems <- data.frame(
+# Human organ systems mapping
+human_organ_systems <- data.frame(
   organ = c("heart", "artery", "vein", "capillary", "blood", "bone marrow","arm_blood_vessel", "thigh_blood_vessel",
             "brain", "spinal cord", "nerve", "eye", "ear", 
             "lung", "trachea", "bronchus", "diaphragm", "pleura","nasopharyngeal",
@@ -977,4 +1272,28 @@ organ_systems <- data.frame(
   stringsAsFactors = FALSE
 )
 
-
+# Mouse organ systems mapping  
+mouse_organ_systems <- data.frame(
+  organ = c("heart","vessel","bone_marrow",
+            "brain","eye","nerve",
+            "lung","trachea",
+            "esophagus","stomach","small_intestine","large_intestine","liver","pancreas","tongue",
+            "kidney","bladder",
+            "skin",
+            "bone","muscle","bone_marrow",
+            "lymph_nodes","spleen","thymus","bone_marrow",
+            "ovary","testis","uterus",
+            "adrenal_gland","thyroid_gland","ovary","testis","pancreas"
+  ),
+  system = c(rep("circulatory", 3),
+             rep("nervous", 3),
+             rep("respiratory", 2),
+             rep("digestive", 7),
+             rep("urinary", 2),
+             rep("integumentary", 1),
+             rep("musculoskeletal", 3),
+             rep("lymphatic", 4),
+             rep("reproductive", 3),
+             rep("endocrine",5)),
+  stringsAsFactors = FALSE
+)
