@@ -166,7 +166,7 @@ prostate_organ_systems <- rbind(
 )
 
 extended_plot <- OrgHeatmap(
-  data = expr_data,
+  data = example_Data3,
   organ_system_map = prostate_organ_systems,
   system = "reproductive",
   title = "Extended Organ System Mapping"

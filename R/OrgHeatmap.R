@@ -255,8 +255,8 @@ OrgHeatmap <- function(data,
                        direction = 1,
                        save_clean_data = FALSE,
                        save_plot = FALSE,
-                       clean_data_path = NULL,  
-                       plot_path = NULL,       
+                       clean_data_path = file.path(getwd(), "clean_data.rds"),  
+                       plot_path = file.path(getwd(),"organ_plot.png"),        
                        plot_width = 10,
                        plot_height = 8,
                        plot_dpi = 300,
@@ -1297,3 +1297,5 @@ mouse_organ_systems <- data.frame(
              rep("endocrine",5)),
   stringsAsFactors = FALSE
 )
+
+

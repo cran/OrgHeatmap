@@ -1,3 +1,7 @@
+# OrgHeatmap 0.3.2
+*   Fixed the issue where mouse organ contours were incorrectly separated from the body outline; organs now correctly connect to the body silhouette.
+
+
 # OrgHeatmap 0.3.1
 *   Resubmission to CRAN addressing feedback from the CRAN team.
 *  **CRAN-required changes:**
@@ -22,7 +26,6 @@
 
 
 # OrgHeatmap 0.1.2
-
 *   Resubmission to CRAN addressing feedback from the CRAN team.
 *   **CRAN-required changes:**
     *   Reformatted the `Description` field in the DESCRIPTION file to a single continuous paragraph.
@@ -31,7 +34,6 @@
 
 
 # OrgHeatmap 0.1.1
-
 *   Initial submission, first release to CRAN.
 *   Fixed the logic for color parameter validation in the `OrgHeatmap()` function, resolving the ERROR that caused test failures.
 *   Added more comprehensive color format checks (Hex codes and color names).
@@ -40,7 +42,6 @@
 
 
 # OrgHeatmap 0.1.0
-
 *   Initial version released on GitHub.
 *   Provided the `OrgHeatmap()` function for drawing organ expression heatmaps.
 *   Included example datasets and detailed usage documentation.
