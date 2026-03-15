@@ -11,7 +11,7 @@
 #' @param sort_by_value Logical, default TRUE, sorts by value descending
 #' @param title Optional character vector for plot title
 #' @param showall Logical, default FALSE. If TRUE, shows all organ outlines (grey) with light grey fill (#EFEFEF) for non-target organs (to provide anatomical context).
-#' @param outline Logical, default TRUE, draws human/cell outline
+#' @param outline Logical, default TRUE, draws human/mouse/cell outline
 #' @param palette Character, name of RColorBrewer palette (e.g., "YlOrRd", "PuBuGn") for unified color scheme (applies to both organ heatmap and bar chart if no custom colors are specified). 
 #'   Ignored if `color_low`/`color_high` (for heatmap) or `organbar_low`/`organbar_high` (for bar chart) are specified. Default: "YlOrRd" (suitable for highlighting high values).
 #' @param color_low Character, custom color for the **minimum value** of the organ heatmap (and bar chart if `organbar_low` is not specified). Overrides `palette` but is overridden by `organbar_low` (highest priority). Default: NULL.
@@ -176,7 +176,8 @@
 #' palette = "PuBu",
 #' save_plot = TRUE,
 #' plot_path = file.path(tempdir(), "mouse_digestive_plot.png"),
-#' save_clean_data = TRUE
+#' save_clean_data = TRUE,
+#' clean_data_path = file.path(tempdir(), "mouse_digestive_data.rds")
 #' )
 #' print(mouse_digestive_plot$plot)
 #' }
@@ -307,7 +308,7 @@ OrgHeatmap <- function(data,
       dplyr::group_modify(function(sub, key) {
         # Skip segments with too few points (cannot form a polygon)
         if (nrow(sub) < 3) {
-          warning(paste0("Mouse contour segment [id=", sub$id[1], "] has fewer than 3 points, skipped"))
+          warning(paste0("Mouse contour segment [id=", key$id[1], "] has fewer than 3 points, skipped"))
           return(NULL)
         }
         
@@ -323,7 +324,6 @@ OrgHeatmap <- function(data,
           as.data.frame() %>%
           dplyr::rename(x = X, y = Y) %>%
           dplyr::mutate(
-            id = sub$id[1], # Retain segment id
             V1 = 1:nrow(.)   # Regenerate index (avoid original index chaos)
           )
         
@@ -430,38 +430,68 @@ OrgHeatmap <- function(data,
     tolower(gsub("\\s+", "_", name))
   }
   
-  # Preprocess organ system mapping (standardize names)
-  preprocess_organ_system_map <- function(map) {
-    
-    if (is.null(map)) {
-      return(NULL)
-    }
-    
-    # If a CSV file path is provided, automatically read it as a data frame
-    if (is.character(map) && file.exists(map)) {
-      # Read CSV (comma-separated by default; adjust sep parameter if needed)
-      map <- read.csv(map, stringsAsFactors = FALSE, check.names = FALSE)
-      # Verify that the resulting data frame contains required columns
-      if (!all(c("organ", "system") %in% colnames(map))) {
-        stop("CSV file must contain 'organ' and 'system' columns (column names must match exactly)")
-      }
-    }
-    
-    map %>%
-      dplyr::mutate(
-        organ = standardize_organ_name(organ),
-        system = tolower(system)
-      )
-  }
-  
   # Standardize coordinate data names
   standardize_coord_names <- function(coord_list) {
     names(coord_list) <- standardize_organ_name(names(coord_list))
     coord_list
   }
   
+  create_organ_mapping <- function(
+    mapping_table,
+    original_col = "original_name",
+    standard_col = "standard_name",
+    output_type = "name_mapping",
+    sep = ","
+  ) {
+    if (!output_type %in% c("name_mapping", "system_mapping")) {
+      stop("output_type must be 'name_mapping' or 'system_mapping'")
+    }
+    
+    if (output_type == "name_mapping" && is.character(mapping_table) && !is.null(names(mapping_table))) {
+      mapping_df <- data.frame(
+        original_name = names(mapping_table),
+        standard_name = as.character(mapping_table),
+        stringsAsFactors = FALSE
+      )
+    } else if (is.character(mapping_table) && length(mapping_table) == 1 && is.null(names(mapping_table))) {
+      if (!file.exists(mapping_table)) {
+        stop("File not found: ", mapping_table)
+      }
+      mapping_df <- read.csv(mapping_table, stringsAsFactors = FALSE, sep = sep, check.names = FALSE)
+    } else if (is.data.frame(mapping_table)) {
+      mapping_df <- mapping_table
+    } else {
+      stop("mapping_table must be a named vector, data frame, or valid CSV file path")
+    }
+    
+    if (nrow(mapping_df) == 0) stop("mapping_table is empty")
+    
+    if (output_type == "name_mapping") {
+      if (!all(c(original_col, standard_col) %in% colnames(mapping_df))) {
+        stop("Missing columns: ", paste(setdiff(c(original_col, standard_col), colnames(mapping_df)), collapse = ", "))
+      }
+      mapping_df <- mapping_df[!is.na(mapping_df[[original_col]]) & !is.na(mapping_df[[standard_col]]), ]
+      return(stats::setNames(
+        sapply(mapping_df[[standard_col]], standardize_organ_name),
+        mapping_df[[original_col]]
+      ))
+    } else {
+      if (!all(c("organ", "system") %in% colnames(mapping_df))) {
+        stop("system_mapping requires 'organ' and 'system' columns")
+      }
+      mapping_df$organ <- sapply(mapping_df$organ, standardize_organ_name)
+      mapping_df$system <- tolower(mapping_df$system)
+      return(mapping_df[!duplicated(mapping_df$organ), ])
+    }
+  }
+  
   # Apply name standardization
-  organ_system_map <- preprocess_organ_system_map(organ_system_map)
+  if (!is.null(organ_system_map)) {
+    organ_system_map <- create_organ_mapping(
+      mapping_table = organ_system_map,
+      output_type = "system_mapping"
+    )
+  }
   current_organ_coord <- standardize_coord_names(current_organ_coord)
   
   current_organ_coord <- lapply(current_organ_coord, function(org_df) {
@@ -491,80 +521,6 @@ OrgHeatmap <- function(data,
     stop(paste0("Specified value column '", value_col, "' not found in data"))
   }
   
-  create_organ_mapping <- function(
-    mapping_table,
-    original_col = "original_name",
-    standard_col = "standard_name",
-    output_type = "name_mapping",
-    sep = ","
-  ) {
-    # Input validation
-    if (is.character(mapping_table) && length(mapping_table) == 1 && file.exists(mapping_table)) {
-      # Read CSV (supports user-specified separator 'sep')
-      mapping_table <- read.csv(
-        mapping_table,
-        stringsAsFactors = FALSE,
-        sep = sep,
-        check.names = FALSE  # Preserve original CSV column names to avoid automatic conversion
-      )
-    }
-    
-    if (!output_type %in% c("name_mapping", "system_mapping")) {
-      stop("output_type must be 'name_mapping' or 'system_mapping'")
-    }
-    
-    if (is.character(mapping_table)) {
-      # Case 1: If it's a named vector (has names and length > 1), use directly as mapping rules
-      if (!is.null(names(mapping_table)) && length(mapping_table) > 1) {
-        mapping_df <- data.frame(
-          original_name = names(mapping_table),
-          standard_name = as.character(mapping_table),
-          stringsAsFactors = FALSE
-        )
-      } 
-      # Case 2: If it's a single character string, treat as file path
-      else if (length(mapping_table) == 1) {
-        if (!file.exists(mapping_table)) {
-          stop("File not found: ", mapping_table)
-        }
-        mapping_df <- read.delim(mapping_table, sep = sep, stringsAsFactors = FALSE)
-      } 
-      # Case 3: Invalid character input (short vector without names)
-      else {
-        stop("Invalid character input for mapping_table. Use a named vector or file path.")
-      }
-    } 
-    # Handle data frame input
-    else if (is.data.frame(mapping_table)) {
-      mapping_df <- mapping_table
-    } 
-    else {
-      stop("mapping_table must be a named vector, data frame, or CSV file path")
-    }
-    
-    if (nrow(mapping_df) == 0) stop("mapping_table is empty")
-    
-    # Generate name mapping (non-standard → standard)
-    if (output_type == "name_mapping") {
-      if (!all(c(original_col, standard_col) %in% colnames(mapping_df))) {
-        stop("Missing columns: ", paste(setdiff(c(original_col, standard_col), colnames(mapping_df)), collapse = ", "))
-      }
-      mapping_df <- mapping_df[!is.na(mapping_df[[original_col]]) & !is.na(mapping_df[[standard_col]]), ]
-      return(stats::setNames(
-        sapply(mapping_df[[standard_col]], standardize_organ_name),  # Standardize target names to match organ coordinate naming rules
-        mapping_df[[original_col]]
-      ))
-    } else {
-      # Generate organ-system mapping
-      if (!all(c("organ", "system") %in% colnames(mapping_df))) {
-        stop("system_mapping requires 'organ' and 'system' columns")
-      }
-      return(dplyr::mutate(mapping_df,
-                           organ = .data$organ, # Directly retain the original organ column (which has been standardized in preprocess_organ_system_map).
-                           system = tolower(.data$system)
-      ) %>% dplyr::distinct(.data$organ, .keep_all = TRUE))
-    }
-  }
   
   process_organ_data <- function(data, organ_col, value_col, organ_name_mapping, aggregate_method,current_organ_coord) {
     # 1. Input validation: Prevent invalid input from entering the pipeline
@@ -810,15 +766,6 @@ OrgHeatmap <- function(data,
       }
     }
     
-    # Process organ_system_map (supports data frames/file paths)
-    if (!identical(organ_system_map, current_default_system) && 
-        (is.data.frame(organ_system_map) || is.character(organ_system_map))) {
-      organ_system_map <- create_organ_mapping(
-        mapping_table = organ_system_map,
-        output_type = "system_mapping"
-      )
-    }
-    
     processed_result <- process_organ_data(
       data = data,
       organ_col = organ_col,
@@ -836,28 +783,34 @@ OrgHeatmap <- function(data,
       system <- NULL
     }
     
+    
     # System filtering - DISABLED FOR ORGANELLES
     if (!is.null(system) && species != "organelle") {
       system <- tolower(system)
-      system_organs <- unique(organ_system_map$organ[organ_system_map$system == system])
+      system_organs <- unique(organ_system_map$organ[organ_system_map$system %in% system])
       
       if (length(system_organs) == 0) {
-        stop(paste("No organs/organelles found for system:", system))
+        stop(paste("No organs/organelles found for system(s):", paste(system, collapse = ", ")))
       }
       
-      missing_in_system <- setdiff(system_organs, names(current_organ_coord))
-      if (length(missing_in_system) > 0) {
-        warning(paste("The following organs in system", system, "have no coordinate data:",
-                      paste(missing_in_system, collapse = ", ")))
+      for (sys in system) {
+        sys_specific_organs <- unique(organ_system_map$organ[organ_system_map$system == sys])
+        missing_in_system <- setdiff(sys_specific_organs, names(current_organ_coord))
+        
+        if (length(missing_in_system) > 0) {
+          warning(paste0("The following organs in system '", sys, "' have no coordinate data: ",
+                         paste(missing_in_system, collapse = ", ")))
+        }
       }
-      
+
       clean_data <- clean_data[clean_data[[organ_col]] %in% system_organs, ]
       
       if (nrow(clean_data) == 0) {
-        warning(paste0("No data available for the specified system: ", system))
+        warning(paste("No data available for the specified system(s):", paste(system, collapse = ", ")))
       } else {
         if (is.null(title)) {
-          title <- paste(stringr::str_to_title(system), "System Visualization")
+          sys_title <- paste(stringr::str_to_title(system), collapse = " & ")
+          title <- paste(sys_title, "System Visualization")
         }
       }
     }
@@ -1047,7 +1000,7 @@ OrgHeatmap <- function(data,
   } else {
     # Original logic for human and mouse
     if (!is.null(system)) {
-      system_organs <- unique(organ_system_map$organ[organ_system_map$system == system])
+      system_organs <- unique(organ_system_map$organ[organ_system_map$system %in% system])
       user_organs_data$in_system <- user_organs_data$organ %in% system_organs
     } else {
       user_organs_data$in_system <- TRUE
@@ -1251,50 +1204,55 @@ OrgHeatmap <- function(data,
 
 # Human organ systems mapping
 human_organ_systems <- data.frame(
-  organ = c("heart", "artery", "vein", "capillary", "blood", "bone marrow","arm_blood_vessel", "thigh_blood_vessel",
-            "brain", "spinal cord", "nerve", "eye", "ear", 
-            "lung", "trachea", "bronchus", "diaphragm", "pleura","nasopharyngeal",
-            "liver", "stomach", "small_intestine","large_intestine","pancreas", "esophagus","nasopharyngeal","tongue","gallbladder",
+  organ = c("heart", "arm_blood_vessel", "thigh_blood_vessel",
+            "brain", "eye", 
+            "lung", "pleura","nasopharyngeal",
+            "liver", "stomach", "small_intestine","large_intestine","pancreas", "esophagus","tongue","gallbladder",
             "kidney", "bladder", "ureter",
-            "skin", "hair", "nails", 
-            "bone","cartilage", "ligament", "tendon", "muscle", 
-            "spleen", "thymus","lymph node", "tonsil",
-            "testis", "ovary", "uterus", "prostate","breast","cervix"),
-  system = c(rep("circulatory", 8),
-             rep("nervous", 5),
-             rep("respiratory", 6),
-             rep("digestive", 9),
+            "skin", "breast", 
+            "bone", "muscle", 
+            "thymus","lymph_node", "bone_marrow",
+            "thymus","lymph_node", "bone_marrow",
+            "testis", "ovary", "uterus", "prostate","breast","cervix",
+            "thyroid_gland", "adrenal_gland", "pancreas", "thymus", "ovary", "testis"),
+  system = c(rep("circulatory", 3),
+             rep("nervous", 2),
+             rep("respiratory", 3),
+             rep("digestive", 8),
              rep("urinary", 3),
-             rep("integumentary", 3),
-             rep("musculoskeletal", 5),
-             rep("lymphatic", 4),
-             rep("reproductive", 6)),
+             rep("integumentary", 2),
+             rep("musculoskeletal", 2),
+             rep("lymphatic", 3),
+             rep("immune", 3),
+             rep("reproductive", 6),
+             rep("endocrine",6)),
   stringsAsFactors = FALSE
 )
 
 # Mouse organ systems mapping  
 mouse_organ_systems <- data.frame(
-  organ = c("heart","vessel","bone_marrow",
+  organ = c("heart","vessel",
             "brain","eye","nerve",
             "lung","trachea",
             "esophagus","stomach","small_intestine","large_intestine","liver","pancreas","tongue",
             "kidney","bladder",
             "skin",
-            "bone","muscle","bone_marrow",
+            "bone","muscle",
+            "lymph_nodes","spleen","thymus","bone_marrow",
             "lymph_nodes","spleen","thymus","bone_marrow",
             "ovary","testis","uterus",
-            "adrenal_gland","thyroid_gland","ovary","testis","pancreas"
-  ),
-  system = c(rep("circulatory", 3),
+            "adrenal_gland","thyroid_gland","ovary","thymus","testis","pancreas"),
+  system = c(rep("circulatory", 2),
              rep("nervous", 3),
              rep("respiratory", 2),
              rep("digestive", 7),
              rep("urinary", 2),
              rep("integumentary", 1),
-             rep("musculoskeletal", 3),
+             rep("musculoskeletal", 2),
              rep("lymphatic", 4),
+             rep("immune", 4),
              rep("reproductive", 3),
-             rep("endocrine",5)),
+             rep("endocrine",6)),
   stringsAsFactors = FALSE
 )
 

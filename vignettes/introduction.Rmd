@@ -37,13 +37,11 @@ library(OrgHeatmap)
 ### 2.1 Package Installation
 ```r
 # Install from local source
-install.packages("OrgHeatmap_0.3.1.tar.gz", repos = NULL, type = "source")
+install.packages("OrgHeatmap_0.3.3.tar.gz", repos = NULL, type = "source")
 
 # Or install from GitHub
-# devtools::install_github("QiruiShen439/OrgHeatmap")
+devtools::install_github("QiruiShen439/OrgHeatmap")
 
-# Install dependencies if needed
-install.packages(c("ggpolypath", "patchwork", "dplyr", "stringdist", "ggplot2", "sf", "viridis"))
 ```
 
 ### 2.2 Loading Example Data
@@ -65,6 +63,8 @@ cat("Example Data 1 (Mouse):\n")
 print(head(example_Data1))
 cat("\nExample Data 3 (Human):\n")
 print(head(example_Data3))
+cat("\nExample Data 4 (Organelle):\n")
+print(head(example_Data4))
 ```
 
 
@@ -110,13 +110,9 @@ mouse_result <- OrgHeatmap(
   title = "Mouse Digestive System"
 )
 
-# Organelle visualization
-organelle_data <- data.frame(
-  organ = c("mitochondrion", "nucleus", "endoplasmic_reticulum"),
-  value = c(15.2, 8.7, 6.3)
-)
+# Organelle visualization using the built-in example_Data4
 organelle_result <- OrgHeatmap(
-  data = organelle_data,
+  data = example_Data4,
   species = "organelle",
   title = "Organelle Expression"
 )
@@ -124,14 +120,21 @@ organelle_result <- OrgHeatmap(
 
 ### 4.2 Organ System Filtering
 ```r
-# Filter by specific organ system
+# 1. Filter by a single organ system
 circulatory_plot <- OrgHeatmap(
   data = example_Data3,
   system = "circulatory",
   title = "Circulatory System Data"
 )
 
-# View available systems for human
+# 2. Filter by MULTIPLE organ systems simultaneously
+multi_system_plot <- OrgHeatmap(
+  data = example_Data3,
+  system = c("digestive", "respiratory"),
+  title = "Digestive & Respiratory Systems"
+)
+
+# View all available systems for human
 unique(human_organ_systems$system)
 ```
 
@@ -409,7 +412,7 @@ publication_plot <- OrgHeatmap(
 | Feature | Key Parameters |
 |---------|----------------|
 | Multi-species | `species = "human"/"mouse"/"organelle"` |
-| System filtering | `system`, `organ_system_map` |
+| System filtering | `system` (supports multiple, e.g., `c("digestive", "immune")`), `organ_system_map` |
 | Color configuration | `palette`, `color_low/color_high`, `organbar_low/organbar_high` |
 | Bar charts | `organbar`, `organbar_title`, `organbar_color` |
 | Name standardization | `organ_name_mapping` |

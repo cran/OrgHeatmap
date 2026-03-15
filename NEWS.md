@@ -1,5 +1,16 @@
+# OrgHeatmap 0.3.3
+* Added support for visualizing multiple organ systems simultaneously (e.g., `system = c("digestive", "respiratory")`). 
+* Significantly upgraded the built-in `human_organ_systems` and `mouse_organ_systems` mapping dictionaries. Introduced advanced physiological classifications including `immune` and `endocrine` systems.
+* The `organ_name_mapping` parameter now easily accepts simple named vectors and custom data frames without errors.
+* Fixed a bug where some valid organs were incorrectly dropped when filtering by multiple systems.
+* Fixed `dplyr` warning messages caused by mouse body contour rendering.
+* Added `example_Data4` to demonstrate organelle visualization.
+
+
+
 # OrgHeatmap 0.3.2
 *   Fixed the issue where mouse organ contours were incorrectly separated from the body outline; organs now correctly connect to the body silhouette.
+
 
 
 # OrgHeatmap 0.3.1
@@ -9,6 +20,7 @@
     * Addressed potential spelling issues by including a WORDLIST file for terms: 'subcellular'
     * Updated Title field to proper title case: "Visualization Tool for Numerical Data on Human/Mouse Organs and Organelles"
     * Removed non-standard file 'organelle_expression_plot.png' from package directory
+ 
     
     
 # OrgHeatmap 0.3.0
@@ -19,10 +31,12 @@
 *   Maintained consistency with existing human/mouse organ visualization workflows while adding organelle-specific options.
 
 
+
 # OrgHeatmap 0.2.0
 *    Added mouse organ visualization support (new species "mouse")
 *    Updated organ system mapping for mouse (mouse_organ_systems)
 *    Added mouse-specific example data in extdata/
+
 
 
 # OrgHeatmap 0.1.2
@@ -33,12 +47,14 @@
     *   Replaced `\dontrun{}` with `\donttest{}` in function examples and unwrapped executable examples as per CRAN policy.
 
 
+
 # OrgHeatmap 0.1.1
 *   Initial submission, first release to CRAN.
 *   Fixed the logic for color parameter validation in the `OrgHeatmap()` function, resolving the ERROR that caused test failures.
 *   Added more comprehensive color format checks (Hex codes and color names).
 *   Rebuilt the LICENSE file.
 *   Added the `.github` directory to the `.Rbuildignore` file as per CRAN policy.
+
 
 
 # OrgHeatmap 0.1.0

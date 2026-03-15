@@ -41,10 +41,7 @@ test_that("Organ System Filtering - Human + Mouse + Organelle (No System for Org
     organ = c("heart", "liver", "brain"),
     value = c(10, 20,  5)
   )
-  expect_warning(
-    human_circulatory <- OrgHeatmap(human_data, system = "circulatory", save_plot = FALSE),
-    "have no coordinate data"
-  )
+  human_circulatory <- OrgHeatmap(human_data, system = "circulatory", save_plot = FALSE)
   expect_equal(human_circulatory$system_used, "circulatory")
   expect_true("heart" %in% human_circulatory$clean_data$organ)
   
@@ -616,4 +613,45 @@ test_that("Saving Functionality - Multiple Formats + Nested Directories + Organe
   unlink(c(human_plot_path, human_data_path, organelle_pdf_path, organelle_svg_path))
   unlink(file.path(tempdir(), "nested"), recursive = TRUE)
 })
+
+
+
+
+test_that("Multi-system Filtering and Smart Title Generation", {
+  # 1. Construct a dataset covering organs from 4 different systems
+  # heart (circulatory), liver (digestive), lung (respiratory), brain (nervous)
+  multi_data <- data.frame(
+    organ = c("heart", "liver", "lung", "brain"), 
+    value = c(10, 20, 30, 40)
+  )
+  
+  # 2. Test extraction of both digestive and respiratory systems simultaneously
+  multi_res <- OrgHeatmap(
+    multi_data, 
+    species = "human",
+    system = c("digestive", "respiratory"), 
+    save_plot = FALSE
+  )
+  
+  # Validation 1: Ensure successful multi-system extraction without vector recycling loss
+  expect_true(
+    all(c("liver", "lung") %in% multi_res$clean_data$organ),
+    info = "Multi-system filtering failed to retain all valid target organs"
+  )
+  
+  # Validation 2: Ensure organs from non-target systems are properly excluded
+  expect_false(
+    any(c("heart", "brain") %in% multi_res$clean_data$organ),
+    info = "Multi-system filtering failed to drop out-of-system organs"
+  )
+  
+  # Validation 3: Check if the smart title is generated correctly as "A & B System Visualization"
+  expect_equal(
+    multi_res$plot$labels$title, 
+    "Digestive & Respiratory System Visualization",
+    info = "Smart title generation for multiple systems failed"
+  )
+})
+
+
 

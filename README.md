@@ -1,23 +1,27 @@
  # OrgHeatmap
 
+[![CRAN status](https://www.r-pkg.org/badges/version/OrgHeatmap)](https://CRAN.R-project.org/package=OrgHeatmap)
+[![Downloads](https://cranlogs.r-pkg.org/badges/grand-total/OrgHeatmap)](https://CRAN.R-project.org/package=OrgHeatmap)
+
 `OrgHeatmap` is an R package for visualizing numerical data (e.g., gene expression levels, physiological indicators) on human, mouse, and organelle diagrams. It supports custom color schemes, organ system filtering, and quantitative bar charts to intuitively display data distribution across anatomical structures.
 
 
 ## Features
 - **Multi-species Support: Visualize data on human, mouse, or organelle diagrams**
 - **Flexible Color Schemes: Unified color configuration for heatmaps and bar charts**
-- **Organ System Filtering: Focus on specific anatomical systems (circulatory, respiratory, etc.)**
+- **Organ System Filtering: Focus on single or multiple anatomical systems simultaneously (e.g., digestive & respiratory).**
 - **Quantitative Comparison: Integrated bar charts for value comparison**
 - **Name Standardization: Handle non-standard organ names with mapping functionality**
 - **Data Aggregation: Automatic handling of duplicate organ entries (mean, sum, count)**
 - **High-Quality Output: Save plots and cleaned data in multiple formats**
 
 
+
 ## Installation
 
 ### From Local Source
 ```r
-install.packages("OrgHeatmap_0.3.1.tar.gz", repos = NULL, type = "source")
+install.packages("OrgHeatmap_0.3.3.tar.gz", repos = NULL, type = "source")
 ```
 
 ### From GitHub 
@@ -27,14 +31,7 @@ if (!require("devtools")) install.packages("devtools")
 devtools::install_github("QiruiShen439/OrgHeatmap")
 ```
 
-### Required Dependencies
-The package automatically checks for and installs required dependencies:
-```r
-# Core dependencies (automatically checked)
-install.packages(c("sf", "dplyr", "stringdist", "ggpolypath", "patchwork", 
-                   "viridis", "data.table", "stringr", "RColorBrewer", 
-                   "ggplot2", "purrr"))
-```
+
 
 ## Quick Start
 
@@ -105,6 +102,16 @@ circulatory_plot <- OrgHeatmap(
 print(circulatory_plot$plot)
 ```
 
+### Multi-System Visualization
+```r
+# Visualize both digestive and respiratory systems simultaneously
+multi_system_plot <- OrgHeatmap(
+  data = example_Data3,
+  system = c("digestive", "respiratory"),
+  title = "Digestive & Respiratory Systems"
+)
+print(multi_system_plot$plot)
+```
 
 ### Custom Color Configuration
 #### Using RColorBrewer Palettes
@@ -203,11 +210,12 @@ result$total_value          # Sum of all values
 ```
 
 
+
 ## Color Configuration Details
 The package uses a unified color system with the following priority:
-1.**Highest Priority**: organbar_low/organbar_high (bar chart colors)
-2.**Medium Priority**: color_low/color_high/color_mid (heatmap colors)
-3.**Lowest Priority**: palette with optional reverse_palette
+1. **Highest Priority**: organbar_low/organbar_high (bar chart colors)
+2. **Medium Priority**: color_low/color_high/color_mid (heatmap colors)
+3. **Lowest Priority**: palette with optional reverse_palette
 
 ### Supported Color Options
 **RColorBrewer Palettes**: "YlOrRd", "PuBuGn", "Blues", etc.
@@ -216,23 +224,49 @@ The package uses a unified color system with the following priority:
 
 
 
+## Supported Organ Systems
+
+The package includes highly curated, built-in mapping dictionaries (`human_organ_systems` and `mouse_organ_systems`) to automatically classify organs. 
+
+**For Human & Mouse:**
+You can filter your data using the `system` parameter with the following scientifically classified systems. *Note: The `immune` and `endocrine` systems have been newly added to provide more precise physiological categorization.*
+- `circulatory` 
+- `nervous` 
+- `respiratory` 
+- `digestive` 
+- `urinary` 
+- `integumentary` 
+- `musculoskeletal` 
+- `lymphatic` 
+- `immune` 
+- `reproductive` 
+- `endocrine` 
+
+*Tip: You can visualize multiple systems simultaneously by passing a vector, e.g., `system = c("digestive", "immune")`.*
+
+**For Organelles:**
+Organelle visualization represents a whole-cell structural view. Therefore, the `system` parameter is inherently ignored when `species = "organelle"`.
+
+
+
 ## Parameter Reference
--`species`: "human", "mouse", or "organelle"
--`system`: Filter by organ system (not applicable for organelles)
--`palette`: RColorBrewer palette name for unified coloring
--`organbar`: Show/hide quantitative bar chart
--`showall`: Display all organ outlines for anatomical context
--`organ_name_mapping`: Standardize non-standard organ names
--`aggregate_method`: "mean", "sum", or "count" for duplicate organs
+- `species`: "human", "mouse", or "organelle"
+- `system`: Filter by organ system (not applicable for organelles)
+- `palette`: RColorBrewer palette name for unified coloring
+- `organbar`: Show/hide quantitative bar chart
+- `showall`: Display all organ outlines for anatomical context
+- `organ_name_mapping`: Standardize non-standard organ names
+- `aggregate_method`: "mean", "sum", or "count" for duplicate organs
 
 
 
 ## Examples Dataset
 The package includes comprehensive example datasets:
--`example_Data1`
--`example_Data2`
--`example_Data3`
--`expr_data`
+- `example_Data1`
+- `example_Data2`
+- `example_Data3`
+- `example_Data4` (Specifically for organelle visualization)
+- `expr_data`
 
 
 
@@ -261,9 +295,9 @@ install.packages(c("sf", "ggpolypath", "patchwork", "stringdist"))
 ```
 
 #### Plot Not Generating
-1.Ensure data has valid numeric values in the specified value column
-2.Check that organ names match the coordinate data after standardization
-3.Verify that the specified system contains organs with data
+1. Ensure data has valid numeric values in the specified value column
+2. Check that organ names match the coordinate data after standardization
+3. Verify that the specified system contains organs with data
 
 
 
@@ -276,6 +310,7 @@ For comprehensive tutorials and parameter explanations:
 # View all package vignettes
 browseVignettes("OrgHeatmap")
 ```
+
 
 
 ## Maintainer

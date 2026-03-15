@@ -381,13 +381,11 @@ schemes, organ system filtering, and quantitative comparisons.</p>
 <div id="package-installation" class="section level3">
 <h3>2.1 Package Installation</h3>
 <pre class="r"><code># Install from local source
-install.packages(&quot;OrgHeatmap_0.3.1.tar.gz&quot;, repos = NULL, type = &quot;source&quot;)
+install.packages(&quot;OrgHeatmap_0.3.3.tar.gz&quot;, repos = NULL, type = &quot;source&quot;)
 
 # Or install from GitHub
-# devtools::install_github(&quot;QiruiShen439/OrgHeatmap&quot;)
-
-# Install dependencies if needed
-install.packages(c(&quot;ggpolypath&quot;, &quot;patchwork&quot;, &quot;dplyr&quot;, &quot;stringdist&quot;, &quot;ggplot2&quot;, &quot;sf&quot;, &quot;viridis&quot;))</code></pre>
+devtools::install_github(&quot;QiruiShen439/OrgHeatmap&quot;)
+</code></pre>
 </div>
 <div id="loading-example-data" class="section level3">
 <h3>2.2 Loading Example Data</h3>
@@ -414,7 +412,16 @@ ls(pattern = &quot;example_Data&quot;)</code></pre>
 #&gt; 5         uterus 0.026
 #&gt; 17 adrenal_gland 0.014
 #&gt; 25        tongue 0.038
-#&gt; 18       stomach 0.050</code></pre>
+#&gt; 18       stomach 0.050
+#&gt; 
+#&gt; Example Data 4 (Organelle):
+#&gt;                   organ value
+#&gt; 1         cell_membrane  11.2
+#&gt; 2             cytoplasm   3.2
+#&gt; 3 endoplasmic_reticulum   4.5
+#&gt; 4       golgi_apparatus   8.9
+#&gt; 5              lysosome  20.1
+#&gt; 6         mitochondrion   7.7</code></pre>
 </div>
 </div>
 <div id="basic-visualization" class="section level2">
@@ -454,27 +461,30 @@ mouse_result &lt;- OrgHeatmap(
   title = &quot;Mouse Digestive System&quot;
 )
 
-# Organelle visualization
-organelle_data &lt;- data.frame(
-  organ = c(&quot;mitochondrion&quot;, &quot;nucleus&quot;, &quot;endoplasmic_reticulum&quot;),
-  value = c(15.2, 8.7, 6.3)
-)
+# Organelle visualization using the built-in example_Data4
 organelle_result &lt;- OrgHeatmap(
-  data = organelle_data,
+  data = example_Data4,
   species = &quot;organelle&quot;,
   title = &quot;Organelle Expression&quot;
 )</code></pre>
 </div>
 <div id="organ-system-filtering" class="section level3">
 <h3>4.2 Organ System Filtering</h3>
-<pre class="r"><code># Filter by specific organ system
+<pre class="r"><code># 1. Filter by a single organ system
 circulatory_plot &lt;- OrgHeatmap(
   data = example_Data3,
   system = &quot;circulatory&quot;,
   title = &quot;Circulatory System Data&quot;
 )
 
-# View available systems for human
+# 2. Filter by MULTIPLE organ systems simultaneously
+multi_system_plot &lt;- OrgHeatmap(
+  data = example_Data3,
+  system = c(&quot;digestive&quot;, &quot;respiratory&quot;),
+  title = &quot;Digestive &amp; Respiratory Systems&quot;
+)
+
+# View all available systems for human
 unique(human_organ_systems$system)</code></pre>
 </div>
 <div id="advanced-color-configuration" class="section level3">
@@ -755,7 +765,9 @@ data visualization with the following key features:</p>
 </tr>
 <tr class="even">
 <td>System filtering</td>
-<td><code>system</code>, <code>organ_system_map</code></td>
+<td><code>system</code> (supports multiple, e.g.,
+<code>c(&quot;digestive&quot;, &quot;immune&quot;)</code>),
+<code>organ_system_map</code></td>
 </tr>
 <tr class="odd">
 <td>Color configuration</td>
