@@ -25,6 +25,7 @@ OrgHeatmap(
   organbar_title = NULL,
   organbar_digit = 4,
   organbar_color = NULL,
+  organbar_text_color = "black",
   organbar_low = NULL,
   organbar_high = NULL,
   direction = 1,
@@ -85,6 +86,8 @@ Ignored if \code{color_low}/\code{color_high} (for heatmap) or \code{organbar_lo
 \item{organbar_digit}{Integer, default 4, digits for bar values}
 
 \item{organbar_color}{Optional character, solid color for bars}
+
+\item{organbar_text_color}{Character. The text color for the organ bar chart values. Default is "black".}
 
 \item{organbar_low}{Character, low end of gradient for \strong{bar chart} (and organ heatmap if \code{color_low} is not specified). Highest priority for color configuration (overrides \code{color_low} and \code{palette}). Default: NULL.}
 

@@ -1,7 +1,7 @@
 Package: OrgHeatmap
 Title: Visualization Tool for Numerical Data on Human/Mouse Organs and
         Organelles
-Version: 0.3.3
+Version: 0.3.4
 Authors@R: 
     person("Qirui", "Shen", email = "shenqr@i.smu.edu.cn", role = c("aut", "cre"))
 Author: Qirui Shen [aut, cre]
@@ -19,6 +19,6 @@ LazyData: true
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2026-03-15 11:06:58 UTC; hp
+Packaged: 2026-03-31 09:39:30 UTC; hp
 Repository: CRAN
-Date/Publication: 2026-03-15 11:50:09 UTC
+Date/Publication: 2026-03-31 10:10:16 UTC

@@ -21,7 +21,7 @@
 
 ### From Local Source
 ```r
-install.packages("OrgHeatmap_0.3.3.tar.gz", repos = NULL, type = "source")
+install.packages("OrgHeatmap_0.3.4.tar.gz", repos = NULL, type = "source")
 ```
 
 ### From GitHub 

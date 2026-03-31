@@ -37,7 +37,7 @@ library(OrgHeatmap)
 ### 2.1 Package Installation
 ```r
 # Install from local source
-install.packages("OrgHeatmap_0.3.3.tar.gz", repos = NULL, type = "source")
+install.packages("OrgHeatmap_0.3.4.tar.gz", repos = NULL, type = "source")
 
 # Or install from GitHub
 devtools::install_github("QiruiShen439/OrgHeatmap")

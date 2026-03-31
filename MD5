@@ -1,11 +1,11 @@
-a6484137154b37ccf10ebb27b5423f89 *DESCRIPTION
+5f732dd30715cb689774a5ebc4d225cb *DESCRIPTION
 b370d346620927b4b61eea928bcda35e *LICENSE
 586d3dba9b54071fbc9f3d3b76a52b72 *NAMESPACE
-3039f79a4662f652fc062fcec2006395 *NEWS.md
-b9d4c2e7ce8ff38de18ac6195fcd7836 *R/OrgHeatmap.R
+eadb4a2123f9d17fe71cab69c27f0ae7 *NEWS.md
+4ae410ff81cdffc5662bdc31abd0a6b8 *R/OrgHeatmap.R
 303e4552eb7a8789767448a536e83c28 *R/data.R
 656426e3276fa993d790973e403b8195 *R/utils-global.R
-d06a7d64805ba07c332bd74c5517eed0 *README.md
+64465f0f6c3f9cd2b32bbabc3f7a13b1 *README.md
 7825248add33584b166fccdfde3593ad *build/vignette.rds
 57ee7653c9c722b32a3f14fca8e922eb *data/human_bodycontour.rda
 9f20a1879c7649aa0cca6a8bb3ffa841 *data/human_organ_coord.rda
@@ -17,8 +17,8 @@ ce25aa351365ca44a56c37302dd96fdb *data/mouse_organ_systems.rda
 8f31ffdae7f254be4a7d2558c8e1f545 *data/organelle_organ_coord.rda
 4ae130036e0d237122d10720e14f86fb *inst/WORDLIST
 1a7faa487b83baadf5371ee72262add2 *inst/doc/introduction.R
-f8cc45310f58e2b456d1763ceec072e8 *inst/doc/introduction.Rmd
-5f4214b6e9c8e9f74e0363d0c4d72eab *inst/doc/introduction.html
+b2765e611b143ec51c48be7156fbc546 *inst/doc/introduction.Rmd
+d5c32378b9cfcccb894ba72315975301 *inst/doc/introduction.html
 b4552e97765ebd095d280c693efc1b23 *inst/extdata/all_system.png
 ef03379b19b4b5471211fefeb9cae524 *inst/extdata/circulatory_system.png
 4bbaaa406e32c7f123b9dc72d9487326 *inst/extdata/clean_data.rds
@@ -28,7 +28,7 @@ aee4b23c9d182daf6aa6756e2945747d *inst/extdata/mouse_digestive_plot.png
 5eddc2240b10599fda34d96e4e43e67a *inst/extdata/organelle_expression_plot.png
 10d48a98daa5e7ad204f04ff4e0a7894 *inst/extdata/respiratory_palette.png
 fecd3dea333083f3e80daf29e8e4acd9 *inst/extdata/tp53_expression_metastatic_prostate.png
-954628db53db68f57e33ad68f133c583 *man/OrgHeatmap.Rd
+ee8fabddfc0d3cc4be3530bcfc094421 *man/OrgHeatmap.Rd
 d8e1d645d778de0e51dd653ea334b0b9 *man/human_bodycontour.Rd
 fcd53411effe0d05f3b39c0eb9626705 *man/human_organ_coord.Rd
 d2bb783a3f19f274ab59dc98830ae841 *man/human_organ_systems.Rd
@@ -40,4 +40,4 @@ a2b7fffb96effc687d45e3542ac464ad *man/organelle_organ_coord.Rd
 5fbc94cf9402887d828f7fbfca27420b *man/utils-global.Rd
 647cb88db149c11b68a7c66f9b0a5f8c *tests/testthat.R
 d7f4ab24817bfab3c7907d7c825547d0 *tests/testthat/test-OrgHeatmap.R
-f8cc45310f58e2b456d1763ceec072e8 *vignettes/introduction.Rmd
+b2765e611b143ec51c48be7156fbc546 *vignettes/introduction.Rmd

@@ -25,6 +25,7 @@
 #' @param organbar_title Optional character, title for bar chart legend
 #' @param organbar_digit Integer, default 4, digits for bar values
 #' @param organbar_color Optional character, solid color for bars
+#' @param organbar_text_color Character. The text color for the organ bar chart values. Default is "black".
 #' @param organbar_low Character, low end of gradient for **bar chart** (and organ heatmap if `color_low` is not specified). Highest priority for color configuration (overrides `color_low` and `palette`). Default: NULL.
 #' @param organbar_high Character, high end of gradient for **bar chart** (and organ heatmap if `color_high` is not specified). Highest priority for color configuration (overrides `color_high` and `palette`). Default: NULL.
 #' @param direction Integer, default 1. Direction of color gradient: 1 = normal (low value → light color, high value → dark color); -1 = reversed (low value → dark color, high value → light color).
@@ -251,6 +252,7 @@ OrgHeatmap <- function(data,
                        organbar_title = NULL,
                        organbar_digit = 4,
                        organbar_color = NULL,
+                       organbar_text_color = "black",
                        organbar_low = NULL,
                        organbar_high = NULL,
                        direction = 1,
@@ -1084,11 +1086,8 @@ OrgHeatmap <- function(data,
     )
     
     # Format value labels
-    organ_bar$value_label <- if (all(organ_bar[[value_col]] %% 1 == 0)) {
-      as.character(organ_bar[[value_col]])
-    } else {
-      format(round(organ_bar[[value_col]], organbar_digit), nsmall = organbar_digit)
-    }
+    format_string <- paste0("%.", organbar_digit, "f")
+    organ_bar$value_label <- sprintf(format_string, organ_bar[[value_col]])
     
     # Create bar chart
     p_organbar <- if (!is.null(organbar_color)) {
@@ -1096,7 +1095,7 @@ OrgHeatmap <- function(data,
       ggplot2::ggplot(organ_bar) +
         ggplot2::aes(x = factor(1), y = order) +
         ggplot2::geom_tile(width = 0.5, fill = organbar_color) +
-        ggplot2::geom_text(ggplot2::aes(label = value_label), size = 5, color = "black") +
+        ggplot2::geom_text(ggplot2::aes(label = value_label), size = 5, color = organbar_text_color) +
         ggplot2::scale_y_discrete(position = "right") +
         ggplot2::guides(fill = "none") +
         ggplot2::theme_void() +
@@ -1106,7 +1105,7 @@ OrgHeatmap <- function(data,
       base_plot <- ggplot2::ggplot(organ_bar) +
         ggplot2::aes(x = factor(1), y = order, fill = !!sym(value_col)) +
         ggplot2::geom_tile(width = 0.5) +
-        ggplot2::geom_text(ggplot2::aes(label = value_label), size = 5, color = "black") +
+        ggplot2::geom_text(ggplot2::aes(label = value_label), size = 5, color = organbar_text_color) +
         ggplot2::scale_y_discrete(position = "right") +
         ggplot2::guides(fill = "none") +
         ggplot2::theme_void() +

@@ -1,3 +1,9 @@
+# OrgHeatmap 0.3.4
+  * Fixed an issue where single-digit integer values in the bar chart could not be consistently formatted with trailing zeros (e.g., `5.0`). Values are now strictly formatted based on the `organbar_digit` parameter using `sprintf`.
+  * Added the `organbar_text_color` parameter to the `OrgHeatmap()` function, allowing users to customize the color of the text annotations within the bar chart (default is `"black"`).
+
+
+
 # OrgHeatmap 0.3.3
 * Added support for visualizing multiple organ systems simultaneously (e.g., `system = c("digestive", "respiratory")`). 
 * Significantly upgraded the built-in `human_organ_systems` and `mouse_organ_systems` mapping dictionaries. Introduced advanced physiological classifications including `immune` and `endocrine` systems.
